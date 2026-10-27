@@ -1,0 +1,111 @@
+{
+  "_comment": "Editable sector library (spec §10–13). Synced into SQLite on every startup, matched by name. Rule types: TAG, NAME_REGEX, TAG_AND_NAME_REGEX. Regexes are matched case-insensitively.",
+  "sectors": [
+    {
+      "name": "Beauty / Aesthetics",
+      "commercial_priority": "HIGH",
+      "osm_coverage": "GOOD",
+      "osm_discovery_enabled": true,
+      "notes": "Tier A. Kadıköy benchmark: 43 total, 42 named, 14 website-tagged, 11 phone-tagged.",
+      "rules": [
+        {"type": "TAG", "tag": "shop", "value": "beauty"},
+        {"type": "NAME_REGEX", "regex": "beauty|güzellik|estetik|nail|tırnak|kalıcı makyaj|cilt bakım|lazer|laser"}
+      ]
+    },
+    {
+      "name": "Veterinary",
+      "commercial_priority": "HIGH",
+      "osm_coverage": "GOOD",
+      "osm_discovery_enabled": true,
+      "notes": "Tier A. Kadıköy benchmark: 56 total.",
+      "rules": [
+        {"type": "TAG", "tag": "amenity", "value": "veterinary"}
+      ]
+    },
+    {
+      "name": "Tattoo",
+      "commercial_priority": "HIGH",
+      "osm_coverage": "GOOD",
+      "osm_discovery_enabled": true,
+      "notes": "Tier A. Kadıköy benchmark: 23 total.",
+      "rules": [
+        {"type": "TAG", "tag": "shop", "value": "tattoo"}
+      ]
+    },
+    {
+      "name": "Furniture / Custom Furniture",
+      "commercial_priority": "HIGH",
+      "osm_coverage": "GOOD",
+      "osm_discovery_enabled": true,
+      "notes": "Tier A. Kadıköy benchmark: 49 total.",
+      "rules": [
+        {"type": "TAG", "tag": "shop", "value": "furniture"},
+        {"type": "TAG", "tag": "craft", "value": "carpenter"},
+        {"type": "NAME_REGEX", "regex": "mobilya|furniture|dekorasyon"}
+      ]
+    },
+    {
+      "name": "Photography",
+      "commercial_priority": "MEDIUM_HIGH",
+      "osm_coverage": "MEDIUM",
+      "osm_discovery_enabled": true,
+      "notes": "Tier A. Kadıköy benchmark: 16 total. DEFAULT RULES — not in spec, please confirm.",
+      "rules": [
+        {"type": "TAG", "tag": "shop", "value": "photo"},
+        {"type": "TAG", "tag": "craft", "value": "photographer"},
+        {"type": "TAG", "tag": "shop", "value": "photo_studio"}
+      ]
+    },
+    {
+      "name": "Hairdresser / Premium Hair Studio",
+      "commercial_priority": "MIXED",
+      "osm_coverage": "EXCELLENT",
+      "osm_discovery_enabled": true,
+      "notes": "Tier B. Kadıköy benchmark: 167 total. Use ranking, not automatic rejection.",
+      "rules": [
+        {"type": "TAG", "tag": "shop", "value": "hairdresser"}
+      ]
+    },
+    {
+      "name": "Pilates / Reformer",
+      "commercial_priority": "HIGH",
+      "osm_coverage": "LOW",
+      "osm_discovery_enabled": true,
+      "notes": "Tier B. Kadıköy benchmark: 11 total.",
+      "rules": [
+        {"type": "TAG", "tag": "sport", "value": "pilates"},
+        {"type": "TAG_AND_NAME_REGEX", "tag": "leisure", "value": "fitness_centre", "regex": "pilates|reformer"},
+        {"type": "NAME_REGEX", "regex": "pilates|reformer"}
+      ]
+    },
+    {
+      "name": "Auto Care / Detailing",
+      "commercial_priority": "HIGH",
+      "osm_coverage": "LOW",
+      "osm_discovery_enabled": true,
+      "notes": "Tier B, experimental. Kadıköy benchmark: 12 total, 4 named. DEFAULT RULES — not in spec, please confirm.",
+      "rules": [
+        {"type": "TAG", "tag": "amenity", "value": "car_wash"},
+        {"type": "NAME_REGEX", "regex": "detailing|oto kuaför|oto kuafor|seramik kaplama|pasta cila|ppf"}
+      ]
+    },
+    {
+      "name": "Interior Design",
+      "commercial_priority": "HIGH",
+      "osm_coverage": "NONE",
+      "osm_discovery_enabled": false,
+      "notes": "Disabled for OSM discovery in V1 (benchmark: 0). Kept for future providers.",
+      "rules": []
+    },
+    {
+      "name": "Pet Grooming",
+      "commercial_priority": "MEDIUM",
+      "osm_coverage": "VERY_LOW",
+      "osm_discovery_enabled": false,
+      "notes": "Disabled for OSM discovery in V1 (benchmark: 2). Kept for future providers.",
+      "rules": [
+        {"type": "TAG", "tag": "shop", "value": "pet_grooming"}
+      ]
+    }
+  ]
+}

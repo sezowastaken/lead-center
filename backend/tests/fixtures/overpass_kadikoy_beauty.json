@@ -1,0 +1,17 @@
+{
+  "version": 0.6,
+  "generator": "test fixture",
+  "elements": [
+    {"type": "node", "id": 1001, "lat": 40.9901, "lon": 29.0281,
+     "tags": {"shop": "beauty", "name": "Beauty Cabin Suadiye", "phone": "0216 555 12 34", "website": "https://beautycabin.example.com"}},
+    {"type": "node", "id": 1002, "lat": 40.9850, "lon": 29.0300,
+     "tags": {"shop": "beauty", "name": "GÜZELLİK MERKEZİ", "website": "https://instagram.com/guzellikmerkezi"}},
+    {"type": "way", "id": 2001, "center": {"lat": 40.9800, "lon": 29.0500},
+     "tags": {"amenity": "clinic", "name": "Lazer Estetik Klinik", "addr:street": "Bağdat Caddesi", "addr:housenumber": "120", "addr:district": "Kadıköy"}},
+    {"type": "node", "id": 1003, "lat": 40.9700, "lon": 29.0600,
+     "tags": {"shop": "beauty"}},
+    {"type": "node", "id": 1001, "lat": 40.9901, "lon": 29.0281,
+     "tags": {"shop": "beauty", "name": "Beauty Cabin Suadiye", "phone": "0216 555 12 34", "website": "https://beautycabin.example.com"}},
+    {"type": "node", "id": 9999, "lat": 40.9, "lon": 29.0}
+  ]
+}

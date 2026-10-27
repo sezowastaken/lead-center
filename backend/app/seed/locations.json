@@ -1,0 +1,15 @@
+{
+  "_comment": "Editable location library (spec §14). Synced into SQLite on every startup, matched by name. osm_relation_id is the OSM administrative boundary relation used as the Overpass search area.",
+  "locations": [
+    {"name": "Istanbul", "location_type": "CITY", "osm_relation_id": 223474, "osm_admin_level": 4},
+    {"name": "Kadıköy", "location_type": "DISTRICT", "parent": "Istanbul", "osm_relation_id": 1276548, "osm_admin_level": 6},
+    {"name": "Ataşehir", "location_type": "DISTRICT", "parent": "Istanbul", "osm_relation_id": 1276672, "osm_admin_level": 6},
+    {"name": "Üsküdar", "location_type": "DISTRICT", "parent": "Istanbul", "osm_relation_id": 1276889, "osm_admin_level": 6},
+    {"name": "Maltepe", "location_type": "DISTRICT", "parent": "Istanbul", "osm_relation_id": 1276407, "osm_admin_level": 6},
+    {"name": "Beşiktaş", "location_type": "DISTRICT", "parent": "Istanbul", "osm_relation_id": 1765893, "osm_admin_level": 6},
+    {"name": "Şişli", "location_type": "DISTRICT", "parent": "Istanbul", "osm_relation_id": 1765896, "osm_admin_level": 6},
+    {"name": "Beyoğlu", "location_type": "DISTRICT", "parent": "Istanbul", "osm_relation_id": 1765892, "osm_admin_level": 6},
+    {"name": "Sarıyer", "location_type": "DISTRICT", "parent": "Istanbul", "osm_relation_id": 1765895, "osm_admin_level": 6},
+    {"name": "Bakırköy", "location_type": "DISTRICT", "parent": "Istanbul", "osm_relation_id": 1766096, "osm_admin_level": 6}
+  ]
+}

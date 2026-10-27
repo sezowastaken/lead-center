@@ -1,0 +1,113 @@
+@import "@fontsource-variable/inter";
+@import "tailwindcss";
+
+/*
+ * Design tokens. One restrained accent; neutral greys carry the hierarchy.
+ * Status colours are used only for small badges.
+ */
+@theme {
+  --font-sans: "Inter Variable", "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+
+  --color-canvas: #f7f7f8;
+  --color-surface: #ffffff;
+  --color-ink: #18181b;
+  --color-ink-2: #3f3f46;
+  --color-muted: #71717a;
+  --color-subtle: #a1a1aa;
+  --color-line: #e4e4e7;
+  --color-line-soft: #efeff1;
+  --color-hover: #f4f4f5;
+
+  --color-accent: #4f5bd5;
+  --color-accent-hover: #4350c4;
+  --color-accent-soft: #eef0fd;
+  --color-accent-ink: #3b45a8;
+
+  --radius-card: 12px;
+  --radius-control: 8px;
+
+  --shadow-card: 0 1px 2px rgb(24 24 27 / 0.04), 0 1px 1px rgb(24 24 27 / 0.02);
+  --shadow-raised: 0 8px 24px rgb(24 24 27 / 0.08), 0 2px 6px rgb(24 24 27 / 0.05);
+}
+
+html {
+  font-size: 15px;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  font-feature-settings: "cv11", "ss01";
+}
+
+::selection {
+  background: var(--color-accent-soft);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+@layer components {
+  /* Typography */
+  .t-title {
+    @apply text-2xl font-semibold tracking-tight text-ink;
+  }
+  .t-section {
+    @apply text-[15px] font-semibold text-ink;
+  }
+  .t-label {
+    @apply text-[13px] font-medium text-ink-2;
+  }
+  .t-caption {
+    @apply text-[13px] text-muted;
+  }
+  .t-overline {
+    @apply text-xs font-medium tracking-wide text-muted uppercase;
+  }
+
+  /* Surfaces */
+  .card {
+    @apply rounded-[var(--radius-card)] border border-line-soft bg-surface shadow-[var(--shadow-card)];
+  }
+
+  /* Buttons */
+  .btn {
+    @apply inline-flex shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-[var(--radius-control)] border text-sm font-medium whitespace-nowrap transition-colors select-none disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-md {
+    @apply h-9 px-3.5;
+  }
+  .btn-sm {
+    @apply h-8 px-2.5 text-[13px];
+  }
+  .btn-lg {
+    @apply h-11 px-5 text-[15px];
+  }
+  .btn-icon {
+    @apply h-9 w-9 px-0;
+  }
+  .btn-primary {
+    @apply border-accent bg-accent text-white hover:border-accent-hover hover:bg-accent-hover;
+  }
+  .btn-secondary {
+    @apply border-line bg-surface text-ink hover:bg-hover;
+  }
+  .btn-ghost {
+    @apply border-transparent bg-transparent text-ink-2 hover:bg-hover hover:text-ink;
+  }
+  .btn-danger {
+    @apply border-line bg-surface text-rose-700 hover:border-rose-200 hover:bg-rose-50;
+  }
+
+  /* Form controls */
+  .control {
+    @apply h-9 w-full min-w-0 rounded-[var(--radius-control)] border border-line bg-surface px-3 text-sm text-ink transition-colors placeholder:text-subtle hover:border-zinc-300 focus:border-accent focus:ring-2 focus:ring-accent/20 focus:outline-none;
+  }
+  textarea.control {
+    @apply h-auto py-2 leading-relaxed;
+  }
+}
