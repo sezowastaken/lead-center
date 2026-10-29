@@ -3,6 +3,7 @@ import Layout from "./components/Layout";
 import BusinessPage from "./pages/BusinessPage";
 import CrmPage from "./pages/CrmPage";
 import DashboardPage from "./pages/DashboardPage";
+import CoverageTab from "./pages/CoveragePage";
 import DiscoverLayout, { BrowseTab, FavoritesTab, FindTab } from "./pages/DiscoverPage";
 import LeadListPage from "./pages/LeadListPage";
 import LeadPage from "./pages/LeadPage";
@@ -19,6 +20,7 @@ export default function App() {
           <Route index element={<BrowseTab />} />
           <Route path="find" element={<FindTab />} />
           <Route path="favorites" element={<FavoritesTab />} />
+          <Route path="coverage" element={<CoverageTab />} />
         </Route>
         <Route path="review" element={<ReviewQueuePage />} />
         <Route path="business/:id" element={<BusinessPage />} />

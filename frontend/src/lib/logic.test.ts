@@ -1,14 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { isDue, todayIso } from "../api/format";
 import {
-  initialQueueNav,
-  queueNavReducer,
   ratioView,
   secondaryFilterCount,
   suggestStage,
   websiteFilterValue,
   withWebsiteFilter,
-  type QueueAction,
 } from "./logic";
 
 describe("website filter", () => {
@@ -51,31 +48,5 @@ describe("isDue", () => {
     expect(isDue("2000-01-01")).toBe(true);
     expect(isDue("2999-01-01")).toBe(false);
     expect(isDue(null)).toBe(false);
-  });
-});
-
-describe("review queue navigation", () => {
-  const run = (...actions: QueueAction[]) => actions.reduce(queueNavReducer, initialQueueNav);
-
-  it("advances past decided/skipped businesses and remembers them", () => {
-    const s = run({ type: "advance", fromId: 1 }, { type: "advance", fromId: 2 });
-    expect(s).toEqual({ trail: [1, 2], back: null, afterId: 2 });
-  });
-
-  it("walks back with Previous and forward with Next to the queue head", () => {
-    let s = run({ type: "advance", fromId: 1 }, { type: "advance", fromId: 2 }, { type: "previous" });
-    expect(s.trail[s.back!]).toBe(2);
-    s = queueNavReducer(s, { type: "previous" });
-    expect(s.trail[s.back!]).toBe(1);
-    s = queueNavReducer(s, { type: "previous" }); // stays at the oldest
-    expect(s.back).toBe(0);
-    s = queueNavReducer(queueNavReducer(s, { type: "next" }), { type: "next" });
-    expect(s.back).toBeNull();
-    expect(s.afterId).toBe(2); // the queue head is unchanged
-  });
-
-  it("does nothing on Previous with an empty trail, and resets on filter change", () => {
-    expect(run({ type: "previous" })).toEqual(initialQueueNav);
-    expect(run({ type: "advance", fromId: 5 }, { type: "reset" })).toEqual(initialQueueNav);
   });
 });

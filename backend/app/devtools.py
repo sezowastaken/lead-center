@@ -33,20 +33,36 @@ def _summary(db) -> str:
     )
 
 
+def read_status(path) -> str:
+    """Read-only: opens the database with mode=ro, never migrates or writes (safe while Lead Center runs)."""
+    import sqlite3
+
+    con = sqlite3.connect(f"file:{path.as_posix()}?mode=ro", uri=True)
+    try:
+        states = dict(con.execute("select record_state, count(*) from osm_businesses group by 1").fetchall())
+        count = lambda table: con.execute(f"select count(*) from {table}").fetchone()[0]  # noqa: E731
+        version = con.execute("select version_num from alembic_version").fetchone()
+        return "\n".join(
+            [
+                f"  schema: {version[0] if version else 'none'}",
+                f"  businesses: {sum(states.values())} {states}",
+                f"  reviews: {count('manual_reviews')}  leads: {count('lead_records')}  outreach events: {count('outreach_events')}",
+            ]
+        )
+    finally:
+        con.close()
+
+
 def cmd_status(args) -> None:
     _use_profile(args.profile)
     from app.config import get_settings
-    from app.database import SessionLocal
-    from app.migrate import upgrade_to_head
 
     settings = get_settings()
     print(f"profile: {settings.profile}\ndatabase: {settings.database_file}")
     if not settings.database_file.exists():
         print("  (database does not exist yet)")
         return
-    upgrade_to_head()
-    with SessionLocal() as db:
-        print(_summary(db))
+    print(read_status(settings.database_file))
 
 
 def cmd_reset_sandbox(args) -> None:

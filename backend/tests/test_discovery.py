@@ -36,7 +36,7 @@ def test_seed_is_idempotent(db):
 
     sync_seed_data(db)
     sync_seed_data(db)
-    assert db.scalar(select(func.count(Sector.id))) == 10
+    assert db.scalar(select(func.count(Sector.id))) == 14
     interior = db.scalar(select(Sector).where(Sector.name == "Interior Design"))
     assert interior.osm_discovery_enabled is False
 

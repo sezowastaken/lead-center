@@ -18,6 +18,13 @@ def _count(db: Session, stmt) -> int:
     return db.scalar(stmt) or 0
 
 
+def reviewed_since(db: Session, since: datetime) -> int:
+    """Businesses that received a decision since `since` (same definition as the dashboard's "reviewed")."""
+    return _count(
+        db, select(func.count(OSMBusiness.id)).where(OSMBusiness.decided_at >= since, OSMBusiness.record_state.in_(DECIDED_STATES))
+    )
+
+
 def _businesses_since(db: Session, since: datetime) -> dict[str, int]:
     discovered = _count(db, select(func.count(OSMBusiness.id)).where(OSMBusiness.first_seen_at >= since))
     by_state = dict(

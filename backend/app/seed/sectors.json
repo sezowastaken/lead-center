@@ -1,5 +1,5 @@
 {
-  "_comment": "Editable sector library (spec §10–13). Synced into SQLite on every startup, matched by name. Rule types: TAG, NAME_REGEX, TAG_AND_NAME_REGEX. Regexes are matched case-insensitively.",
+  "_comment": "Editable sector library (spec §10-13). Synced into SQLite on every startup, matched by name. Rule types: TAG, NAME_REGEX, TAG_AND_NAME_REGEX, TAG_AND_TAG_REGEX (tag=value plus regex on regex_key). Regexes are case-insensitive. match_priority: lower is checked first when an object fits several sectors (default 100). review_weight: initial review-session weight; only applied when a sector has none yet, so changes made in Settings are kept.",
   "sectors": [
     {
       "name": "Beauty / Aesthetics",
@@ -8,9 +8,17 @@
       "osm_discovery_enabled": true,
       "notes": "Tier A. Kadıköy benchmark: 43 total, 42 named, 14 website-tagged, 11 phone-tagged.",
       "rules": [
-        {"type": "TAG", "tag": "shop", "value": "beauty"},
-        {"type": "NAME_REGEX", "regex": "beauty|güzellik|estetik|nail|tırnak|kalıcı makyaj|cilt bakım|lazer|laser"}
-      ]
+        {
+          "type": "TAG",
+          "tag": "shop",
+          "value": "beauty"
+        },
+        {
+          "type": "NAME_REGEX",
+          "regex": "beauty|güzellik|estetik|nail|tırnak|kalıcı makyaj|cilt bakım|lazer|laser"
+        }
+      ],
+      "review_weight": 2.0
     },
     {
       "name": "Veterinary",
@@ -19,8 +27,13 @@
       "osm_discovery_enabled": true,
       "notes": "Tier A. Kadıköy benchmark: 56 total.",
       "rules": [
-        {"type": "TAG", "tag": "amenity", "value": "veterinary"}
-      ]
+        {
+          "type": "TAG",
+          "tag": "amenity",
+          "value": "veterinary"
+        }
+      ],
+      "review_weight": 1.8
     },
     {
       "name": "Tattoo",
@@ -29,8 +42,13 @@
       "osm_discovery_enabled": true,
       "notes": "Tier A. Kadıköy benchmark: 23 total.",
       "rules": [
-        {"type": "TAG", "tag": "shop", "value": "tattoo"}
-      ]
+        {
+          "type": "TAG",
+          "tag": "shop",
+          "value": "tattoo"
+        }
+      ],
+      "review_weight": 1.8
     },
     {
       "name": "Furniture / Custom Furniture",
@@ -39,10 +57,22 @@
       "osm_discovery_enabled": true,
       "notes": "Tier A. Kadıköy benchmark: 49 total.",
       "rules": [
-        {"type": "TAG", "tag": "shop", "value": "furniture"},
-        {"type": "TAG", "tag": "craft", "value": "carpenter"},
-        {"type": "NAME_REGEX", "regex": "mobilya|furniture|dekorasyon"}
-      ]
+        {
+          "type": "TAG",
+          "tag": "shop",
+          "value": "furniture"
+        },
+        {
+          "type": "TAG",
+          "tag": "craft",
+          "value": "carpenter"
+        },
+        {
+          "type": "NAME_REGEX",
+          "regex": "mobilya|furniture|dekorasyon"
+        }
+      ],
+      "review_weight": 1.7
     },
     {
       "name": "Photography",
@@ -51,10 +81,23 @@
       "osm_discovery_enabled": true,
       "notes": "Tier A. Kadıköy benchmark: 16 total. DEFAULT RULES — not in spec, please confirm.",
       "rules": [
-        {"type": "TAG", "tag": "shop", "value": "photo"},
-        {"type": "TAG", "tag": "craft", "value": "photographer"},
-        {"type": "TAG", "tag": "shop", "value": "photo_studio"}
-      ]
+        {
+          "type": "TAG",
+          "tag": "shop",
+          "value": "photo"
+        },
+        {
+          "type": "TAG",
+          "tag": "craft",
+          "value": "photographer"
+        },
+        {
+          "type": "TAG",
+          "tag": "shop",
+          "value": "photo_studio"
+        }
+      ],
+      "review_weight": 1.3
     },
     {
       "name": "Hairdresser / Premium Hair Studio",
@@ -63,8 +106,13 @@
       "osm_discovery_enabled": true,
       "notes": "Tier B. Kadıköy benchmark: 167 total. Use ranking, not automatic rejection.",
       "rules": [
-        {"type": "TAG", "tag": "shop", "value": "hairdresser"}
-      ]
+        {
+          "type": "TAG",
+          "tag": "shop",
+          "value": "hairdresser"
+        }
+      ],
+      "review_weight": 0.6
     },
     {
       "name": "Pilates / Reformer",
@@ -73,10 +121,23 @@
       "osm_discovery_enabled": true,
       "notes": "Tier B. Kadıköy benchmark: 11 total.",
       "rules": [
-        {"type": "TAG", "tag": "sport", "value": "pilates"},
-        {"type": "TAG_AND_NAME_REGEX", "tag": "leisure", "value": "fitness_centre", "regex": "pilates|reformer"},
-        {"type": "NAME_REGEX", "regex": "pilates|reformer"}
-      ]
+        {
+          "type": "TAG",
+          "tag": "sport",
+          "value": "pilates"
+        },
+        {
+          "type": "TAG_AND_NAME_REGEX",
+          "tag": "leisure",
+          "value": "fitness_centre",
+          "regex": "pilates|reformer"
+        },
+        {
+          "type": "NAME_REGEX",
+          "regex": "pilates|reformer"
+        }
+      ],
+      "review_weight": 1.4
     },
     {
       "name": "Auto Care / Detailing",
@@ -85,9 +146,17 @@
       "osm_discovery_enabled": true,
       "notes": "Tier B, experimental. Kadıköy benchmark: 12 total, 4 named. DEFAULT RULES — not in spec, please confirm.",
       "rules": [
-        {"type": "TAG", "tag": "amenity", "value": "car_wash"},
-        {"type": "NAME_REGEX", "regex": "detailing|oto kuaför|oto kuafor|seramik kaplama|pasta cila|ppf"}
-      ]
+        {
+          "type": "TAG",
+          "tag": "amenity",
+          "value": "car_wash"
+        },
+        {
+          "type": "NAME_REGEX",
+          "regex": "detailing|oto kuaför|oto kuafor|seramik kaplama|pasta cila|ppf"
+        }
+      ],
+      "review_weight": 1.3
     },
     {
       "name": "Interior Design",
@@ -95,7 +164,8 @@
       "osm_coverage": "NONE",
       "osm_discovery_enabled": false,
       "notes": "Disabled for OSM discovery in V1 (benchmark: 0). Kept for future providers.",
-      "rules": []
+      "rules": [],
+      "review_weight": 1.0
     },
     {
       "name": "Pet Grooming",
@@ -104,7 +174,85 @@
       "osm_discovery_enabled": false,
       "notes": "Disabled for OSM discovery in V1 (benchmark: 2). Kept for future providers.",
       "rules": [
-        {"type": "TAG", "tag": "shop", "value": "pet_grooming"}
+        {
+          "type": "TAG",
+          "tag": "shop",
+          "value": "pet_grooming"
+        }
+      ],
+      "review_weight": 1.0
+    },
+    {
+      "name": "Burger",
+      "commercial_priority": "HIGH",
+      "osm_coverage": "GOOD",
+      "osm_discovery_enabled": true,
+      "match_priority": 10,
+      "review_weight": 2.0,
+      "notes": "Takes precedence over Fast Food and Restaurants (cuisine contains burger). Food. Website opportunities: full website or mini site, QR menu / digital menu, ordering or WhatsApp links, English menu, reservation and contact, location and opening-hours presentation.",
+      "rules": [
+        {
+          "type": "TAG_AND_TAG_REGEX",
+          "tag": "amenity",
+          "value": "fast_food",
+          "regex_key": "cuisine",
+          "regex": "burger"
+        },
+        {
+          "type": "TAG_AND_TAG_REGEX",
+          "tag": "amenity",
+          "value": "restaurant",
+          "regex_key": "cuisine",
+          "regex": "burger"
+        }
+      ]
+    },
+    {
+      "name": "Fast Food",
+      "commercial_priority": "MEDIUM_HIGH",
+      "osm_coverage": "GOOD",
+      "osm_discovery_enabled": true,
+      "match_priority": 50,
+      "review_weight": 1.3,
+      "notes": "Food. Website opportunities: full website or mini site, QR menu / digital menu, ordering or WhatsApp links, English menu, reservation and contact, location and opening-hours presentation.",
+      "rules": [
+        {
+          "type": "TAG",
+          "tag": "amenity",
+          "value": "fast_food"
+        }
+      ]
+    },
+    {
+      "name": "Restaurants",
+      "commercial_priority": "MEDIUM",
+      "osm_coverage": "GOOD",
+      "osm_discovery_enabled": true,
+      "match_priority": 50,
+      "review_weight": 1.0,
+      "notes": "Food. Website opportunities: full website or mini site, QR menu / digital menu, ordering or WhatsApp links, English menu, reservation and contact, location and opening-hours presentation.",
+      "rules": [
+        {
+          "type": "TAG",
+          "tag": "amenity",
+          "value": "restaurant"
+        }
+      ]
+    },
+    {
+      "name": "Cafes",
+      "commercial_priority": "MEDIUM",
+      "osm_coverage": "GOOD",
+      "osm_discovery_enabled": true,
+      "match_priority": 50,
+      "review_weight": 1.0,
+      "notes": "Food. Website opportunities: full website or mini site, QR menu / digital menu, ordering or WhatsApp links, English menu, reservation and contact, location and opening-hours presentation.",
+      "rules": [
+        {
+          "type": "TAG",
+          "tag": "amenity",
+          "value": "cafe"
+        }
       ]
     }
   ]

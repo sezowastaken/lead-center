@@ -19,6 +19,7 @@ export function useBusinessActions(onDone?: (b: BusinessDetail) => void) {
     qc.invalidateQueries({ queryKey: ["queue"] });
     qc.invalidateQueries({ queryKey: ["leads"] });
     qc.invalidateQueries({ queryKey: ["dashboard"] });
+    qc.invalidateQueries({ queryKey: ["review-progress"] });
     onDone?.(b);
   };
   return {

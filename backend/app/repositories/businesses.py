@@ -7,18 +7,22 @@ from sqlalchemy.orm import Session
 from app.models import OSMBusiness, Sector
 from app.models.enums import REVIEW_QUEUE_STATES, RecordState
 
-# "queue" = normal review queue, "active" = everything except rejected.
+# "queue" = normal review queue, "active" = everything except rejected, "decided" = has a decision.
 STATE_VIEWS = {
     "queue": list(REVIEW_QUEUE_STATES),
     "active": [s for s in RecordState if s != RecordState.REJECTED],
+    "decided": [RecordState.REJECTED, RecordState.FAVORITED, RecordState.APPROVED],
 }
+
+# sector_id / location_id value meaning "not assigned" (NULL), e.g. from Coverage's "Unassigned" rows.
+NONE = "none"
 
 
 @dataclass
 class BusinessFilters:
     state: str | None = "queue"  # queue | active | all | <RecordState>
-    sector_id: int | None = None
-    location_id: int | None = None
+    sector_id: int | str | None = None  # an id, or NONE for unassigned
+    location_id: int | str | None = None
     website_type: str | None = None
     has_phone: bool | None = None
     has_website: bool | None = None
@@ -34,9 +38,9 @@ def apply_filters(stmt: Select, f: BusinessFilters) -> Select:
         states = STATE_VIEWS.get(f.state) or [RecordState(f.state)]
         stmt = stmt.where(OSMBusiness.record_state.in_(states))
     if f.sector_id is not None:
-        stmt = stmt.where(OSMBusiness.sector_id == f.sector_id)
+        stmt = stmt.where(OSMBusiness.sector_id.is_(None) if f.sector_id == NONE else OSMBusiness.sector_id == f.sector_id)
     if f.location_id is not None:
-        stmt = stmt.where(OSMBusiness.location_id == f.location_id)
+        stmt = stmt.where(OSMBusiness.location_id.is_(None) if f.location_id == NONE else OSMBusiness.location_id == f.location_id)
     if f.website_type:
         stmt = stmt.where(OSMBusiness.normalized_website_type == f.website_type)
     if f.has_phone is not None:

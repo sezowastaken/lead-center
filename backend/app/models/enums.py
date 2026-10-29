@@ -42,6 +42,7 @@ class RuleType(StrEnum):
     TAG = "TAG"
     NAME_REGEX = "NAME_REGEX"
     TAG_AND_NAME_REGEX = "TAG_AND_NAME_REGEX"
+    TAG_AND_TAG_REGEX = "TAG_AND_TAG_REGEX"  # tag=value and another tag (regex_key) matching regex, e.g. cuisine~burger
 
 
 class LocationType(StrEnum):

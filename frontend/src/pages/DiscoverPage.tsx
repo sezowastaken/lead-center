@@ -21,6 +21,7 @@ export default function DiscoverLayout() {
           { to: "/discover/find", label: "Find businesses" },
           { to: "/discover", label: "Browse", end: true },
           { to: "/discover/favorites", label: "Favorites" },
+          { to: "/discover/coverage", label: "Coverage" },
         ]}
       />
       <Outlet />

@@ -17,6 +17,8 @@ export interface Sector {
   osm_discovery_enabled: boolean;
   enabled: boolean;
   notes: string | null;
+  match_priority: number;
+  review_weight: number | null;
   rules: SectorRule[];
 }
 
@@ -112,11 +114,6 @@ export interface BusinessPage {
   total: number;
   limit: number;
   offset: number;
-}
-
-export interface QueueNext {
-  business: BusinessDetail | null;
-  remaining: number;
 }
 
 export interface BusinessFilters {
@@ -222,4 +219,80 @@ export interface Backup {
   created_at: string;
   size_bytes: number;
   manual: boolean;
+}
+
+export interface PBFInfo {
+  path: string;
+  size_bytes: number;
+  file_modified_at: string;
+  data_timestamp: string | null;
+  replication_sequence: number | null;
+  replication_url: string | null;
+}
+
+export interface OsmJob {
+  kind: "download" | "update" | "import";
+  status: "running" | "succeeded" | "failed" | "cancelled" | "unavailable";
+  phase: string;
+  done: number;
+  total: number | null;
+  message: string | null;
+  result: Record<string, unknown>;
+  started_at: string;
+  finished_at: string | null;
+}
+
+export interface OsmDataStatus {
+  source_url: string;
+  file_name: string;
+  pbf: PBFInfo | null;
+  job: OsmJob | null;
+  last_check: {
+    checked_at: string;
+    behind_by: number | null;
+    remote: { url: string; size_bytes: number | null; last_modified: string | null; latest_timestamp: string | null; latest_sequence: number | null };
+  } | null;
+  last_download: OsmJob | null;
+  last_update: OsmJob | null;
+  last_import: OsmJob | null;
+}
+
+export interface ReviewSessionView {
+  id: number;
+  status: "ACTIVE" | "COMPLETED";
+  created_at: string;
+  filters: { sector_id?: number; location_id?: number };
+  total: number;
+  cursor: number;
+  position: number;
+  decided: number;
+  pending: number;
+  current_business_id: number | null;
+  at_start: boolean;
+  at_end: boolean;
+  business: BusinessDetail | null;
+}
+
+export interface ReviewProgress {
+  reviewed_today: number;
+  target: number;
+}
+
+export type CoveragePopulation = "waiting" | "all" | "decided" | "approved" | "rejected";
+
+export interface CoverageRow {
+  id: number | null; // null = unassigned
+  name: string;
+  count: number;
+  pct: number;
+}
+
+export interface Coverage {
+  population: CoveragePopulation;
+  browse_state: string;
+  totals: { total: number; waiting: number; decided: number; approved: number; rejected: number };
+  population_total: number;
+  sectors: (CoverageRow & { review_weight: number | null; commercial_priority: string | null })[];
+  locations: (CoverageRow & { type: string | null })[];
+  cells: { sector_id: number | null; location_id: number | null; count: number }[];
 }

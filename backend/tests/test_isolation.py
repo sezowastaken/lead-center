@@ -69,7 +69,7 @@ def test_reset_all_keeps_configuration(db, overpass_payload):
     apply_reset(db, "all")
     assert db.scalar(select(func.count(OSMBusiness.id))) == 0
     assert db.scalar(select(func.count(DiscoveryRun.id))) == 0
-    assert db.scalar(select(func.count(Sector.id))) == 10
+    assert db.scalar(select(func.count(Sector.id))) == 14
 
 
 def test_dashboard_follow_ups_and_lead_latest_note(db, overpass_payload):
@@ -82,3 +82,36 @@ def test_dashboard_follow_ups_and_lead_latest_note(db, overpass_payload):
     crm.update_lead(db, lead, LeadUpdate(next_follow_up_at=date(2999, 1, 1)))
     assert build_dashboard(db)["totals"]["follow_ups_due"] == 0
     assert LeadOut.from_lead(lead).latest_note == "hi"
+
+
+def test_devtools_status_is_read_only(db, tmp_path):
+    """`devtools status` must never migrate or write — it may run against the real DB while the app is open."""
+    import hashlib
+
+    from app.devtools import read_status
+
+    path = tmp_path / "test.db"  # the db fixture's file
+    db.close()
+    db.get_bind().dispose()
+    before = hashlib.sha256(path.read_bytes()).hexdigest()
+    out = read_status(path)
+    assert "schema: 0004" in out and "businesses: 0" in out
+    assert hashlib.sha256(path.read_bytes()).hexdigest() == before
+
+
+def test_health_identifies_the_process_and_index_is_never_stale():
+    """LeadCenter.bat stops a running instance by the PID from /api/health; index.html must not be cached,
+    or a browser keeps showing the previous build after `LeadCenter.bat rebuild`."""
+    import os
+
+    from fastapi.testclient import TestClient
+
+    from app.config import get_settings
+    from app.main import app
+
+    client = TestClient(app)
+    health = client.get("/api/health").json()
+    assert health["pid"] == os.getpid() and health["started_at"]
+    if (get_settings().frontend_dist_dir / "index.html").exists():
+        page = client.get("/review")
+        assert page.status_code == 200 and page.headers["cache-control"] == "no-cache"

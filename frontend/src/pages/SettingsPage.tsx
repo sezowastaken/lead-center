@@ -1,9 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { DatabaseBackup } from "lucide-react";
+import { useEffect, useState } from "react";
 import { api } from "../api/client";
 import { fmtDateTime } from "../api/format";
 import { useLocations, useSectors } from "../api/hooks";
-import { Badge, Button, Card, CardHeader, Disclosure, ErrorNote, PageHeader } from "../components/ui";
+import OsmDataCard from "../components/OsmDataCard";
+import { WEIGHT_MAX, WEIGHT_MIN, weightHint } from "../lib/logic";
+import { Badge, Button, Card, CardHeader, Disclosure, ErrorNote, Field, PageHeader } from "../components/ui";
 
 const nice = (v: string) => v.replace(/_/g, " ").toLowerCase();
 
@@ -15,6 +18,9 @@ export default function SettingsPage() {
     <div className="flex max-w-4xl flex-col gap-6">
       <PageHeader title="Settings" />
       <BackupsCard sandbox={sandbox} />
+      <OsmDataCard />
+      <ReviewTargetCard />
+      <ReviewWeightsCard />
       <LibraryCard />
 
       <Card className="flex flex-col gap-2 p-5 sm:p-6">
@@ -170,6 +176,92 @@ function AdvancedCard({ sandbox }: { sandbox: boolean }) {
           </section>
         </div>
       </Disclosure>
+    </Card>
+  );
+}
+
+function ReviewTargetCard() {
+  const qc = useQueryClient();
+  const progress = useQuery({ queryKey: ["review-progress"], queryFn: api.reviewProgress });
+  const [value, setValue] = useState("");
+  useEffect(() => {
+    if (progress.data) setValue(String(progress.data.target));
+  }, [progress.data]);
+  const save = useMutation({ mutationFn: (t: number) => api.setDailyTarget(t), onSuccess: (p) => qc.setQueryData(["review-progress"], p) });
+  const n = Number(value);
+  const valid = Number.isInteger(n) && n >= 1 && n <= 500;
+  return (
+    <Card className="flex flex-col gap-4 p-5 sm:p-6">
+      <CardHeader title="Daily review target" description="Shown on the Review page as “12 / 30 reviewed today”." />
+      <div className="flex flex-wrap items-end gap-3">
+        <Field label="Businesses per day">
+          <input className="control w-32" type="number" min={1} max={500} value={value} onChange={(e) => setValue(e.target.value)} />
+        </Field>
+        <Button variant="secondary" disabled={!valid || save.isPending || n === progress.data?.target} onClick={() => save.mutate(n)}>
+          Save
+        </Button>
+      </div>
+      <ErrorNote error={save.error} />
+    </Card>
+  );
+}
+
+/** Per-sector review weights: how often each sector comes up in NEW review sessions. */
+function ReviewWeightsCard() {
+  const qc = useQueryClient();
+  const sectors = (useSectors().data ?? []).filter((s) => s.enabled && s.osm_discovery_enabled);
+  const [draft, setDraft] = useState<Record<number, number>>({});
+  const [savedId, setSavedId] = useState<number | null>(null);
+  const save = useMutation({
+    mutationFn: (v: { id: number; weight: number }) => api.setReviewWeight(v.id, v.weight),
+    onSuccess: (_, v) => {
+      qc.invalidateQueries({ queryKey: ["sectors"] });
+      qc.invalidateQueries({ queryKey: ["coverage"] });
+      setSavedId(v.id);
+    },
+  });
+  const commit = (id: number, original: number) => {
+    const w = draft[id];
+    if (w !== undefined && w !== original) save.mutate({ id, weight: w });
+  };
+
+  return (
+    <Card className="flex flex-col gap-4 p-5 sm:p-6">
+      <CardHeader
+        title="Review priority by sector"
+        description="Higher-priority sectors come up more often early in a new review session; low ones are saved for later. Every waiting business is still included, and the same sector is never shown twice in a row when it can be avoided. Changes apply to new sessions only."
+      />
+      <ul className="flex flex-col divide-y divide-line-soft">
+        {sectors.map((s) => {
+          const original = s.review_weight ?? 1;
+          const w = draft[s.id] ?? original;
+          return (
+            <li key={s.id} className="grid grid-cols-1 items-center gap-2 py-3 sm:grid-cols-[minmax(0,14rem)_minmax(0,1fr)_7.5rem]">
+              <label htmlFor={`weight-${s.id}`} className="text-sm font-medium">
+                {s.name}
+              </label>
+              <input
+                id={`weight-${s.id}`}
+                type="range"
+                min={WEIGHT_MIN}
+                max={WEIGHT_MAX}
+                step={0.1}
+                value={w}
+                className="w-full accent-[var(--color-accent)]"
+                onChange={(e) => setDraft((d) => ({ ...d, [s.id]: Number(e.target.value) }))}
+                onPointerUp={() => commit(s.id, original)}
+                onKeyUp={() => commit(s.id, original)}
+                onBlur={() => commit(s.id, original)}
+                aria-valuetext={`${w.toFixed(1)}, ${weightHint(w)}`}
+              />
+              <span className="text-sm tabular-nums text-ink-2">
+                ×{w.toFixed(1)} <span className="t-caption">{savedId === s.id && !save.isPending && w === original ? "saved" : weightHint(w)}</span>
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+      <ErrorNote error={save.error} />
     </Card>
   );
 }

@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Literal
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
@@ -6,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.services.backup import service as backups
+from app.services.coverage import build_coverage
 from app.services.dashboard import build_dashboard
 
 router = APIRouter(tags=["system"])
@@ -25,6 +27,11 @@ def _out(b: backups.BackupInfo) -> BackupOut:
 @router.get("/dashboard")
 def get_dashboard(db: Session = Depends(get_db)) -> dict:
     return build_dashboard(db)
+
+
+@router.get("/coverage")
+def get_coverage(population: Literal["waiting", "all", "decided", "approved", "rejected"] = "waiting", db: Session = Depends(get_db)) -> dict:
+    return build_coverage(db, population)
 
 
 @router.get("/backups", response_model=list[BackupOut])

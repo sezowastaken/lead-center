@@ -106,6 +106,7 @@ export const WEBSITE_TYPES: Option[] = [
 export const STATE_VIEWS: Option[] = [
   { value: "queue", label: "Review queue (new + in review)" },
   { value: "active", label: "All except rejected" },
+  { value: "decided", label: "Reviewed / decided" },
   { value: "DISCOVERED", label: "Discovered" },
   { value: "IN_REVIEW", label: "In review" },
   { value: "FAVORITED", label: "Favorited" },

@@ -14,8 +14,10 @@ Done:
 - **Outreach history:** the exact messages you sent and the replies you received, append-only
 - **Dashboard:** today and this-month counts, conversion ratios, sector performance, rejection reasons
 - **Backups:** automatic daily SQLite backups (30 kept) plus manual backups
+- **Local OSM data:** Geofabrik Turkey extract with download, incremental update and import (step 18), next to Overpass
+- **Review sessions:** a persisted, sector-diverse shuffled deck with browser-like Previous / Next, plus a daily target
 
-Not built yet: PBF importer and `PBFProvider` (step 18 / P1), website crawler, scoring, AI, automatic messaging, cloud.
+Not built yet: website crawler, scoring, AI, automatic messaging, cloud.
 
 Lead Center **never sends messages**. Draft the message, copy it, send it yourself, then log it on the lead page.
 
@@ -30,7 +32,9 @@ LeadCenter.bat
 The launcher:
 1. Syncs Python dependencies.
 2. Builds the frontend the first time. After updating the code, run `LeadCenter.bat rebuild` so the browser gets the new UI.
-3. Starts FastAPI on `127.0.0.1:8000`, waits for `/api/health`, then opens http://localhost:8000.
+3. Stops a Lead Center that is already running (found through `/api/health`). Then it starts FastAPI on `127.0.0.1:8000`, waits for `/api/health` and opens http://localhost:8000.
+
+The page itself is never cached (`index.html` is served with `Cache-Control: no-cache`), so after a rebuild the browser always loads the new version.
 
 Database migrations run automatically on startup.
 
@@ -80,6 +84,7 @@ cd frontend && npm test
 | Database | `data/lead_center.db` (git-ignored) |
 | Overpass response cache (24h TTL) | `data/cache/overpass/` |
 | Backups (daily automatic, 30 kept; manual ones never pruned) | `data/backups/` |
+| OpenStreetMap extract (`turkey-latest.osm.pbf`, ~650 MB) | `data/osm/` (sandbox: `data/sandbox/osm/`) |
 | Sector library (rules, priority, OSM coverage) | `backend/app/seed/sectors.json` |
 | Location library (OSM boundary relation IDs) | `backend/app/seed/locations.json` |
 
@@ -89,12 +94,49 @@ Both seed files are synced into the database on every startup. To change sectors
 
 **Restoring a backup.** Close Lead Center, copy the backup file over `data/lead_center.db`, and delete any `lead_center.db-wal` and `lead_center.db-shm` files next to it. Then start the app again.
 
+## OpenStreetMap data (local PBF)
+
+**Settings → OpenStreetMap data** manages the Geofabrik Turkey extract. Nothing is downloaded unless you click a button, and the size is shown before the download starts.
+
+- **Download latest data**
+  - Resolves `turkey-latest` to the dated file it points to.
+  - Streams it to `turkey-latest.osm.pbf.part`, showing progress, and computes the MD5 as it goes.
+  - Checks the byte count, the MD5 against Geofabrik's `.md5` and the PBF header.
+  - Only then replaces the working file atomically. A cancel, network error or failed check deletes the `.part` and keeps the previous file.
+- **Check for updates** compares the replication sequence in your file with Geofabrik's `turkey-updates/state.txt`. It transfers only a few KB.
+- **Update data** runs `pyosmium-up-to-date`, which applies Geofabrik's daily diffs into a temporary file. The result is validated and swapped in. If an incremental update isn't possible, your file stays untouched and you're offered a fresh download.
+- **Import / Re-import**
+  - Backs up the database first.
+  - Pass 1: a C++ key filter plus your sector rules reduce Turkey to a small file of candidate businesses and boundaries.
+  - Pass 2: computes coordinates and assigns each business to its district (`locations.json`), otherwise Istanbul. Businesses outside Istanbul are skipped.
+  - Existing `osm_type` + `osm_id` records are updated in place. Decisions, reviews, notes, leads and CRM history are never touched. New businesses enter the review queue.
+
+Overpass (Discover → Find businesses) stays available for quick ad-hoc searches.
+
+**Sandbox E2E without the real 650 MB file.** `uv run python -m tests.e2e_extract_server 8765` serves a synthetic Istanbul extract, its `.md5`, `state.txt` and one replication diff. Start the sandbox with `LEAD_CENTER_OSM_PBF_URL=http://127.0.0.1:8765/europe/turkey-latest.osm.pbf` and `LEAD_CENTER_OSM_UPDATES_URL=http://127.0.0.1:8765/europe/turkey-updates`.
+
+## Review sessions
+
+Starting a session takes everything currently waiting for review (with optional sector and location filters) and builds a shuffled deck once:
+
+1. Shuffle within each sector.
+2. Interleave the sectors, weighted by how many businesses each has, so the deck mirrors the pool.
+3. Two businesses from the same sector only follow each other when the pool makes it unavoidable. In that case the minimum number of repeats is spread evenly through the deck.
+
+The deck and a cursor are stored in `review_sessions`, so the session survives refreshes and restarts:
+
+- **Previous / Next** move through the same deck like browser history, and nothing is reshuffled.
+- **Reject / Favorite / Approve** save the decision and move on to the next undecided business.
+- **Skip** moves on without a decision.
+
+Opening Review in a new tab offers **Resume** or **Start new shuffled session**. The header shows "N / 30 reviewed today", and the target can be changed in Settings.
+
 ## Key rules (from the spec)
 
 - **Missing OSM data means UNKNOWN, not "no".** A business without a `website` tag shows "Website unknown". Only your manual review can record "no independent website". OSM data and "Verified by me" are shown separately.
 - **Rejecting never deletes.** A rejected business keeps its OSM identity (`osm_type` + `osm_id`, unique), so re-running discovery never brings it back into the review queue. A mistaken reject or approve can be undone.
 - **Re-discovery only refreshes OSM fields.** When a known business is found again, its OSM fields, `last_seen_at` and `times_seen` are updated. Your decisions, sector, location, checklist and notes are never touched.
-- **Public Overpass is for prototyping only.** Requests run one at a time, with an identifying User-Agent, a local cache and bounded retries. Long-term discovery will use a local Geofabrik PBF through a `PBFProvider`, which plugs into the `OSMSource` interface in `backend/app/services/osm/base.py`. It is not implemented yet.
+- **Public Overpass is for prototyping only.** Requests run one at a time, with an identifying User-Agent, a local cache and bounded retries. Regular, high-volume discovery uses the local Geofabrik PBF: `PBFProvider` and the bulk importer in `backend/app/services/osm/pbf/`, behind the same `OSMSource` interface (`backend/app/services/osm/base.py`).
 
 ## Attribution
 

@@ -7,12 +7,13 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.api.routes import businesses, discovery, health, leads, sectors_locations, system
+from app.api.routes import businesses, discovery, health, leads, osm_data, review_sessions, sectors_locations, system
 from app.config import get_settings
 from app.database import SessionLocal
 from app.migrate import upgrade_to_head
 from app.seed.loader import sync_seed_data
 from app.services.backup.service import ensure_daily_backup
+from app.services.osm.pbf.files import cleanup_partials
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 log = logging.getLogger("lead_center")
@@ -39,6 +40,8 @@ async def lifespan(_app: FastAPI):
     upgrade_to_head()
     with SessionLocal() as db:
         sync_seed_data(db)
+    for name in cleanup_partials(get_settings().osm_dir):  # interrupted downloads from a previous run
+        log.info("Removed incomplete OSM file %s", name)
     task = asyncio.create_task(_daily_backup_loop())
     yield
     task.cancel()
@@ -54,12 +57,28 @@ app.include_router(discovery.router, prefix="/api")
 app.include_router(businesses.router, prefix="/api")
 app.include_router(leads.router, prefix="/api")
 app.include_router(system.router, prefix="/api")
+app.include_router(osm_data.router, prefix="/api")
+app.include_router(review_sessions.router, prefix="/api")
 
+
+class HashedAssets(StaticFiles):
+    """Vite gives every build new file names, so assets can be cached forever."""
+
+    async def get_response(self, path, scope):
+        response = await super().get_response(path, scope)
+        if response.status_code == 200:
+            response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+        return response
+
+
+# index.html must always be revalidated, otherwise a browser keeps showing the previous build after
+# `LeadCenter.bat rebuild` (it has no Cache-Control and browsers then cache it heuristically).
+NO_CACHE = {"Cache-Control": "no-cache"}
 
 # Serve the built React app (launcher mode). In development, Vite on :5173 proxies /api here instead.
 _dist = get_settings().frontend_dist_dir
 if (_dist / "index.html").exists():
-    app.mount("/assets", StaticFiles(directory=_dist / "assets"), name="assets")
+    app.mount("/assets", HashedAssets(directory=_dist / "assets"), name="assets")
 
     @app.get("/{path:path}", include_in_schema=False)
     def spa(path: str):
@@ -67,5 +86,5 @@ if (_dist / "index.html").exists():
             raise HTTPException(status_code=404)
         candidate = (_dist / path).resolve()
         if path and candidate.is_file() and candidate.is_relative_to(_dist.resolve()):
-            return FileResponse(candidate)
-        return FileResponse(_dist / "index.html")
+            return FileResponse(candidate, headers=NO_CACHE)
+        return FileResponse(_dist / "index.html", headers=NO_CACHE)

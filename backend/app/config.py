@@ -32,6 +32,11 @@ class Settings(BaseSettings):
     overpass_max_retries: int = 2
     overpass_cache_ttl_hours: int = 24
 
+    # Local OSM extract (spec §5.2, §16). Downloaded only on explicit user action.
+    osm_pbf_url: str = "https://download.geofabrik.de/europe/turkey-latest.osm.pbf"
+    osm_updates_url: str = "https://download.geofabrik.de/europe/turkey-updates"
+    osm_pbf_name: str = "turkey-latest.osm.pbf"
+
     frontend_dist: Path = Path("frontend/dist")
 
     @model_validator(mode="after")
@@ -57,6 +62,15 @@ class Settings(BaseSettings):
     @property
     def database_url(self) -> str:
         return f"sqlite:///{self.database_file.as_posix()}"
+
+    @property
+    def osm_dir(self) -> Path:
+        """Per profile, next to the database: data/osm/ (real) or data/sandbox/osm/ (sandbox)."""
+        return self.database_file.parent / "osm"
+
+    @property
+    def pbf_file(self) -> Path:
+        return self.osm_dir / self.osm_pbf_name
 
     @property
     def cache_dir(self) -> Path:

@@ -36,8 +36,20 @@ export default function Filters({
     <div className="flex flex-col gap-3">
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-[minmax(12rem,1.4fr)_repeat(4,minmax(8rem,1fr))_auto]">
         <input className="control sm:col-span-2 lg:col-span-1" type="search" placeholder="Search name or address" aria-label="Search" value={value.q ?? ""} onChange={(e) => set("q", e.target.value)} />
-        <SelectInput ariaLabel="Sector" value={value.sector_id ?? ""} onChange={(v) => set("sector_id", v)} placeholder="All sectors" options={sectors.map((s) => ({ value: String(s.id), label: s.name }))} />
-        <SelectInput ariaLabel="Location" value={value.location_id ?? ""} onChange={(v) => set("location_id", v)} placeholder="All locations" options={locations.map((l) => ({ value: String(l.id), label: l.name }))} />
+        <SelectInput
+          ariaLabel="Sector"
+          value={value.sector_id ?? ""}
+          onChange={(v) => set("sector_id", v)}
+          placeholder="All sectors"
+          options={[...sectors.map((s) => ({ value: String(s.id), label: s.name })), { value: "none", label: "Unassigned" }]}
+        />
+        <SelectInput
+          ariaLabel="Location"
+          value={value.location_id ?? ""}
+          onChange={(v) => set("location_id", v)}
+          placeholder="All locations"
+          options={[...locations.map((l) => ({ value: String(l.id), label: l.location_type === "CITY" ? `${l.name} (no district)` : l.name })), { value: "none", label: "Unassigned" }]}
+        />
         <SelectInput ariaLabel="Website" value={websiteFilterValue(value)} onChange={(v) => onChange(withWebsiteFilter(value, v))} placeholder="Any website status" options={WEBSITE_FILTER_OPTIONS} />
         <SelectInput ariaLabel="Sort" value={value.sort ?? "newest"} onChange={(v) => set("sort", v)} options={SORTS} />
         <Button variant={more || extra ? "secondary" : "ghost"} onClick={() => setMore((m) => !m)} aria-expanded={more} className="sm:col-span-2 lg:col-span-1">

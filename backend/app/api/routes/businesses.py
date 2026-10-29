@@ -7,17 +7,27 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import OSMBusiness
 from app.models.enums import RecordState
-from app.repositories.businesses import STATE_VIEWS, BusinessFilters, list_businesses, next_in_queue
+from app.repositories.businesses import NONE, STATE_VIEWS, BusinessFilters, list_businesses, next_in_queue
 from app.schemas.business import BusinessDetail, BusinessPage, BusinessOut, FavoriteIn, QueueNext, RejectIn, ReviewIn
 from app.services.review import service as review_service
 
 router = APIRouter(tags=["businesses"])
 
 
+def _id_or_none(name: str, value: str | None) -> int | str | None:
+    if value is None or value == "":
+        return None
+    if value == NONE:
+        return NONE
+    if value.isdigit():
+        return int(value)
+    raise HTTPException(status_code=422, detail=f"{name} must be a number or '{NONE}'")
+
+
 def filters_dep(
     state: str | None = "queue",
-    sector_id: int | None = None,
-    location_id: int | None = None,
+    sector_id: str | None = None,
+    location_id: str | None = None,
     website_type: str | None = None,
     has_phone: bool | None = None,
     has_website: bool | None = None,
@@ -30,7 +40,10 @@ def filters_dep(
     if state and state != "all" and state not in STATE_VIEWS and state not in RecordState.__members__:
         raise HTTPException(status_code=422, detail=f"Unknown state filter '{state}'")
     return BusinessFilters(
-        state=state, sector_id=sector_id, location_id=location_id, website_type=website_type,
+        state=state,
+        sector_id=_id_or_none("sector_id", sector_id),
+        location_id=_id_or_none("location_id", location_id),
+        website_type=website_type,
         has_phone=has_phone, has_website=has_website, favorite=favorite, discovered_since=discovered_since,
         commercial_priority=commercial_priority, osm_coverage=osm_coverage, q=q,
     )

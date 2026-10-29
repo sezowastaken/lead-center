@@ -3,14 +3,18 @@ import type {
   BusinessFilters,
   Backup,
   BusinessPage,
+  Coverage,
+  CoveragePopulation,
   Dashboard,
   DiscoveryRun,
   Lead,
   LeadDetail,
   LeadFields,
   Location,
-  QueueNext,
+  OsmDataStatus,
   Review,
+  ReviewProgress,
+  ReviewSessionView,
   Sector,
 } from "./types";
 
@@ -65,8 +69,6 @@ export const api = {
   businesses: (filters: BusinessFilters, limit: number, offset: number) =>
     request<BusinessPage>(`/businesses${qs({ ...filters, limit, offset })}`),
   business: (id: number) => request<BusinessDetail>(`/businesses/${id}`),
-  queueNext: (filters: BusinessFilters, afterId?: number) =>
-    request<QueueNext>(`/review-queue/next${qs({ ...filters, after_id: afterId })}`),
 
   saveReview: (id: number, review: Review) =>
     request<BusinessDetail>(`/businesses/${id}/review`, { method: "PUT", body: JSON.stringify(review) }),
@@ -87,6 +89,26 @@ export const api = {
   ) => post<LeadDetail>(`/leads/${id}/events`, event),
 
   dashboard: () => request<Dashboard>("/dashboard"),
+  coverage: (population: CoveragePopulation) => request<Coverage>(`/coverage${qs({ population })}`),
+  setReviewWeight: (sectorId: number, weight: number) =>
+    request<Sector>(`/sectors/${sectorId}/review-weight`, { method: "PUT", body: JSON.stringify({ review_weight: weight }) }),
   backups: () => request<Backup[]>("/backups"),
   createBackup: () => post<Backup>("/backups"),
+
+  // OpenStreetMap data (local PBF). Download/update/import start background jobs.
+  osmData: () => request<OsmDataStatus>("/osm-data"),
+  osmCheck: () => post<OsmDataStatus>("/osm-data/check"),
+  osmDownload: () => post<OsmDataStatus>("/osm-data/download"),
+  osmUpdate: () => post<OsmDataStatus>("/osm-data/update"),
+  osmImport: () => post<OsmDataStatus>("/osm-data/import"),
+  osmCancel: () => post<OsmDataStatus>("/osm-data/cancel"),
+
+  // Review sessions: a stored shuffled deck with a cursor.
+  currentReviewSession: () => request<{ session: ReviewSessionView | null }>("/review-sessions/current"),
+  eligibleForReview: (filters: { sector_id?: string; location_id?: string }) =>
+    request<{ count: number; by_sector: { sector: string; count: number }[] }>(`/review-sessions/eligible${qs(filters)}`),
+  startReviewSession: (filters: { sector_id?: number; location_id?: number }) => post<ReviewSessionView>("/review-sessions", filters),
+  moveReviewSession: (id: number, action: "previous" | "next" | "advance") => post<ReviewSessionView>(`/review-sessions/${id}/move`, { action }),
+  reviewProgress: () => request<ReviewProgress>("/review/progress"),
+  setDailyTarget: (target: number) => request<ReviewProgress>("/review/daily-target", { method: "PUT", body: JSON.stringify({ target }) }),
 };

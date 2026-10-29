@@ -29,6 +29,9 @@ def sync_sectors(db: Session, data: dict) -> None:
         sector.osm_discovery_enabled = item.get("osm_discovery_enabled", True)
         sector.enabled = item.get("enabled", True)
         sector.notes = item.get("notes")
+        sector.match_priority = item.get("match_priority", 100)
+        if sector.review_weight is None:  # initial value only; Settings edits are never overwritten
+            sector.review_weight = item.get("review_weight", 1.0)
 
         # Rules are fully owned by the JSON file: replace them on each sync.
         sector.rules.clear()
@@ -39,6 +42,7 @@ def sync_sectors(db: Session, data: dict) -> None:
                     rule_type=rule_type,
                     tag_key=rule.get("tag"),
                     tag_value=rule.get("value"),
+                    regex_key=rule.get("regex_key"),
                     regex=rule.get("regex"),
                     priority=i,
                     enabled=rule.get("enabled", True),

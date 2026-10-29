@@ -2,9 +2,10 @@
 
 from app.models import Location, Sector, SectorRule
 from app.models.enums import RuleType
+from app.services.osm.sector_mapper import POI_KEYS
 
 # Name-only rules are restricted to POI-like objects so streets, bus stops etc. never match.
-POI_KEY_FILTER = '[~"^(shop|amenity|craft|office|healthcare|leisure|beauty)$"~"."]'
+POI_KEY_FILTER = '[~"^(' + "|".join(POI_KEYS) + ')$"~"."]'
 AREA_ID_OFFSET = 3_600_000_000  # Overpass area id = relation id + 3.6e9
 
 
@@ -26,6 +27,8 @@ def _clause(rule: SectorRule) -> str | None:
             return f'nwr["name"~"{_q(rule.regex)}",i]{POI_KEY_FILTER}(area.searchArea);'
         case RuleType.TAG_AND_NAME_REGEX:
             return f'nwr["{_q(rule.tag_key)}"="{_q(rule.tag_value)}"]["name"~"{_q(rule.regex)}",i](area.searchArea);'
+        case RuleType.TAG_AND_TAG_REGEX:
+            return f'nwr["{_q(rule.tag_key)}"="{_q(rule.tag_value)}"]["{_q(rule.regex_key)}"~"{_q(rule.regex)}",i](area.searchArea);'
     return None
 
 

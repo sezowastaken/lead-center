@@ -56,36 +56,32 @@ export function suggestStage(eventType: string, current: string): string {
   return "";
 }
 
-/* ---------- Review queue: Previous / Skip / Next ---------- */
+/* ---------- Coverage: click-through to Browse ---------- */
 
-/**
- * `trail` holds businesses already left behind (decided or skipped), oldest first.
- * `back` is null while viewing the queue head, or an index into `trail` while looking back.
- */
-export interface QueueNav {
-  trail: number[];
-  back: number | null;
-  afterId: number | undefined; // the queue head is the next queued business after this id
+/** Browse URL for a Coverage row/cell. `null` ids mean "unassigned" and map to the API's "none". */
+export function browseLink(state: string, ids: { sector?: number | null; location?: number | null }): string {
+  const sp = new URLSearchParams();
+  if (state !== "queue") sp.set("state", state); // queue is Browse's default
+  if (ids.sector !== undefined) sp.set("sector_id", ids.sector === null ? "none" : String(ids.sector));
+  if (ids.location !== undefined) sp.set("location_id", ids.location === null ? "none" : String(ids.location));
+  const s = sp.toString();
+  return s ? `/discover?${s}` : "/discover";
 }
 
-export type QueueAction = { type: "advance"; fromId: number } | { type: "previous" } | { type: "next" } | { type: "reset" };
+/* ---------- Review weights ---------- */
 
-export const initialQueueNav: QueueNav = { trail: [], back: null, afterId: undefined };
+export const WEIGHT_MIN = 0.2;
+export const WEIGHT_MAX = 3;
 
-export function queueNavReducer(s: QueueNav, a: QueueAction): QueueNav {
-  switch (a.type) {
-    case "advance": {
-      if (s.back !== null) return { ...s, back: s.back + 1 < s.trail.length ? s.back + 1 : null };
-      const trail = s.trail[s.trail.length - 1] === a.fromId ? s.trail : [...s.trail, a.fromId];
-      return { trail, back: null, afterId: a.fromId };
-    }
-    case "previous":
-      if (s.trail.length === 0) return s;
-      return { ...s, back: s.back === null ? s.trail.length - 1 : Math.max(0, s.back - 1) };
-    case "next":
-      if (s.back === null) return s;
-      return { ...s, back: s.back + 1 < s.trail.length ? s.back + 1 : null };
-    case "reset":
-      return initialQueueNav;
-  }
+export function weightLabel(w: number): string {
+  return `priority ×${w.toFixed(1)}`;
+}
+
+/** A plain-language hint for a weight value, shown next to the slider. */
+export function weightHint(w: number): string {
+  if (w >= 1.75) return "much more often";
+  if (w >= 1.25) return "more often";
+  if (w > 0.85) return "normal";
+  if (w >= 0.5) return "less often";
+  return "rarely, until the end";
 }

@@ -12,6 +12,7 @@ class SectorRuleOut(ORMModel):
     rule_type: str
     tag_key: str | None
     tag_value: str | None
+    regex_key: str | None = None
     regex: str | None
     enabled: bool
 
@@ -24,6 +25,8 @@ class SectorOut(ORMModel):
     osm_discovery_enabled: bool
     enabled: bool
     notes: str | None
+    match_priority: int = 100
+    review_weight: float | None = None
     rules: list[SectorRuleOut] = []
 
 
