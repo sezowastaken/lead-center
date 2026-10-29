@@ -4,22 +4,10 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { api } from "../api/client";
 import { fmtDate } from "../api/format";
 import { useBusinessActions } from "../api/hooks";
-import {
-  BUSINESS_ACTIVE,
-  COMMERCIAL_VALUE,
-  CONTACT_DECISION,
-  CUSTOMER_VALUE,
-  INSTAGRAM_STATUS,
-  labelOf,
-  REACHABILITY,
-  REBRAND_STATUS,
-  REJECT_REASONS,
-  VERIFIED_WEBSITE_STATUS,
-  WEBSITE_ISSUES,
-  WEBSITE_TYPES,
-} from "../api/labels";
+import { labelOf, useLabels, type Labels } from "../api/labels";
 import { displayName, externalUrl } from "../api/links";
 import type { BusinessDetail, Review } from "../api/types";
+import { useI18n, usePlaceName, useSectorName, type T } from "../i18n";
 import QuickLinks from "./QuickLinks";
 import RejectControl from "./RejectControl";
 import { Badge, Button, ButtonLink, Card, CheckboxGrid, Disclosure, ErrorNote, OsmValue, SelectInput, Segmented, StateBadge, ToggleChips } from "./ui";
@@ -50,11 +38,14 @@ function toForm(b: BusinessDetail): Review {
 }
 
 // Verified website status, grouped so the long list reads as two simple questions.
-const WEBSITE_STATUS_GROUPS = [
-  { group: "No real website", options: VERIFIED_WEBSITE_STATUS.filter((o) => ["NO_INDEPENDENT_WEBSITE", "SOCIAL_ONLY", "THIRD_PARTY_ONLY"].includes(o.value)) },
-  { group: "Has a website", options: VERIFIED_WEBSITE_STATUS.filter((o) => ["BROKEN", "SEVERELY_OUTDATED", "POOR", "AVERAGE", "GOOD", "EXCELLENT"].includes(o.value)) },
-  { group: "Other", options: VERIFIED_WEBSITE_STATUS.filter((o) => o.value === "NOT_CHECKED") },
-];
+function websiteStatusGroups(L: Labels, t: T) {
+  const pick = (values: string[]) => L.VERIFIED_WEBSITE_STATUS.filter((o) => values.includes(o.value));
+  return [
+    { group: t("review.groupNoSite"), options: pick(["NO_INDEPENDENT_WEBSITE", "SOCIAL_ONLY", "THIRD_PARTY_ONLY"]) },
+    { group: t("review.groupHasSite"), options: pick(["BROKEN", "SEVERELY_OUTDATED", "POOR", "AVERAGE", "GOOD", "EXCELLENT"]) },
+    { group: t("review.groupOther"), options: pick(["NOT_CHECKED"]) },
+  ];
+}
 const HAS_SITE = new Set(["BROKEN", "SEVERELY_OUTDATED", "POOR", "AVERAGE", "GOOD", "EXCELLENT"]);
 
 const AUTOSAVE_MS = 1000;
@@ -115,6 +106,10 @@ export default function ReviewWorkspace({
     onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => update(key, e.target.value as never),
   });
 
+  const { t } = useI18n();
+  const L = useLabels();
+  const sectorName = useSectorName();
+  const placeName = usePlaceName();
   const actions = useBusinessActions(onDecided);
   // Decisions always persist pending checklist/notes edits first.
   const decide = async (fn: () => void) => {
@@ -135,14 +130,14 @@ export default function ReviewWorkspace({
           <div className="min-w-0">
             <h1 className={`text-[26px] leading-tight font-semibold tracking-tight ${b.name ? "" : "text-muted italic"}`}>{displayName(b)}</h1>
             <p className="mt-1 text-[15px] text-muted">
-              {b.sector?.name ?? "No sector"} · {b.location?.name ?? "—"}
+              {b.sector ? sectorName(b.sector.name) : t("common.noSector")} · {placeName(b.location?.name) || "—"}
               {b.address_text ? ` · ${b.address_text}` : ""}
             </p>
           </div>
           <div className="flex items-center gap-2">
             {b.favorite && (
               <Badge tone="amber">
-                <Heart className="h-3 w-3 fill-current" /> Favorite
+                <Heart className="h-3 w-3 fill-current" /> {t("review.favoriteBadge")}
               </Badge>
             )}
             <StateBadge state={b.record_state} />
@@ -150,8 +145,7 @@ export default function ReviewWorkspace({
         </div>
         {b.record_state === "REJECTED" && (
           <p className="rounded-[var(--radius-control)] bg-rose-50 px-3 py-2 text-sm text-rose-800">
-            Rejected: {labelOf(REJECT_REASONS, b.reject_reason)}
-            {b.reject_note ? ` — ${b.reject_note}` : ""}. It stays in your registry and won't return to the review queue.
+            {t("review.rejectedNotice", { reason: labelOf(L.REJECT_REASONS, b.reject_reason), note: b.reject_note ? ` — ${b.reject_note}` : "" })}
           </p>
         )}
         <QuickLinks business={b} website={form.manual_website} size="md" />
@@ -161,29 +155,29 @@ export default function ReviewWorkspace({
         <FactsPanel business={b} form={form} />
 
         <div className="flex min-w-0 flex-col gap-6 xl:order-first">
-          <Section n={1} title="Business verification" description="Check Google Maps and recent reviews.">
-            <Question label="Is the business currently active?">
-              <Segmented ariaLabel="Business currently active" options={BUSINESS_ACTIVE} value={form.business_active} onChange={(v) => update("business_active", v)} />
+          <Section n={1} title={t("review.s1")} description={t("review.s1Hint")}>
+            <Question label={t("review.qActive")}>
+              <Segmented ariaLabel={t("review.aActive")} options={L.BUSINESS_ACTIVE} value={form.business_active} onChange={(v) => update("business_active", v)} />
             </Question>
-            <Question label="Possible rebrand or ownership change?">
-              <Segmented ariaLabel="Rebrand or ownership change" options={REBRAND_STATUS} value={form.rebrand_status} onChange={(v) => update("rebrand_status", v)} />
+            <Question label={t("review.qRebrand")}>
+              <Segmented ariaLabel={t("review.aRebrand")} options={L.REBRAND_STATUS} value={form.rebrand_status} onChange={(v) => update("rebrand_status", v)} />
             </Question>
             {showBrand && (
-              <Question label="Current brand name">
-                <input className="control max-w-md" placeholder="Name it trades under today" {...text("current_brand_name")} />
+              <Question label={t("review.qBrand")}>
+                <input className="control max-w-md" placeholder={t("review.brandPlaceholder")} {...text("current_brand_name")} />
               </Question>
             )}
           </Section>
 
-          <Section n={2} title="Web presence" description="What does their website or social presence look like today?">
-            <Question label="Verified website status">
+          <Section n={2} title={t("review.s2")} description={t("review.s2Hint")}>
+            <Question label={t("review.qWebsiteStatus")}>
               <SelectInput
                 className="max-w-md"
-                ariaLabel="Verified website status"
+                ariaLabel={t("review.qWebsiteStatus")}
                 value={form.verified_website_status ?? ""}
                 onChange={(v) => update("verified_website_status", v || null)}
-                placeholder="Not checked yet"
-                options={WEBSITE_STATUS_GROUPS}
+                placeholder={t("review.notCheckedYet")}
+                options={websiteStatusGroups(L, t)}
               />
             </Question>
             <Disclosure
@@ -191,52 +185,52 @@ export default function ReviewWorkspace({
               defaultOpen={HAS_SITE.has(form.verified_website_status ?? "") || form.website_issues.length > 0}
               summary={
                 <span>
-                  Website issues
-                  {form.website_issues.length > 0 && <span className="ml-2 text-muted">{form.website_issues.length} selected</span>}
+                  {t("review.issues")}
+                  {form.website_issues.length > 0 && <span className="ml-2 text-muted">{t("review.selected", { count: form.website_issues.length })}</span>}
                 </span>
               }
             >
-              <CheckboxGrid options={WEBSITE_ISSUES} value={form.website_issues} onChange={(v) => update("website_issues", v)} />
+              <CheckboxGrid options={L.WEBSITE_ISSUES} value={form.website_issues} onChange={(v) => update("website_issues", v)} />
             </Disclosure>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Question label="Verified website">
+              <Question label={t("review.qVerifiedWebsite")}>
                 <input className="control" placeholder="https://…" {...text("manual_website")} />
               </Question>
-              <Question label="Verified Instagram">
-                <input className="control" placeholder="@handle or URL" {...text("manual_instagram")} />
+              <Question label={t("review.qVerifiedInstagram")}>
+                <input className="control" placeholder={t("review.instagramPlaceholder")} {...text("manual_instagram")} />
               </Question>
             </div>
-            <Question label="Instagram activity">
-              <Segmented ariaLabel="Instagram activity" options={INSTAGRAM_STATUS} value={form.instagram_status} onChange={(v) => update("instagram_status", v)} />
+            <Question label={t("review.qInstagram")}>
+              <Segmented ariaLabel={t("review.qInstagram")} options={L.INSTAGRAM_STATUS} value={form.instagram_status} onChange={(v) => update("instagram_status", v)} />
             </Question>
           </Section>
 
-          <Section n={3} title="Reachability & potential" description="How could you contact them, and is it worth it?">
-            <Question label="How can you reach them?">
-              <ToggleChips ariaLabel="Reachability" options={REACHABILITY} value={form.reachability} onChange={(v) => update("reachability", v)} />
+          <Section n={3} title={t("review.s3")} description={t("review.s3Hint")}>
+            <Question label={t("review.qReach")}>
+              <ToggleChips ariaLabel={t("review.aReach")} options={L.REACHABILITY} value={form.reachability} onChange={(v) => update("reachability", v)} />
             </Question>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Question label="Verified phone / WhatsApp">
+              <Question label={t("review.qVerifiedPhone")}>
                 <input className="control" placeholder="+90 …" {...text("manual_phone")} />
               </Question>
-              <Question label="Verified email">
+              <Question label={t("review.qVerifiedEmail")}>
                 <input className="control" placeholder="name@…" {...text("manual_email")} />
               </Question>
             </div>
-            <Question label="Would a professional website plausibly create value?">
-              <Segmented ariaLabel="Likely website value" options={COMMERCIAL_VALUE} value={form.commercial_value} onChange={(v) => update("commercial_value", v)} />
+            <Question label={t("review.qWebsiteValue")}>
+              <Segmented ariaLabel={t("review.aWebsiteValue")} options={L.COMMERCIAL_VALUE} value={form.commercial_value} onChange={(v) => update("commercial_value", v)} />
             </Question>
-            <Question label="Customer / project value">
-              <Segmented ariaLabel="Customer value" options={CUSTOMER_VALUE} value={form.customer_value} onChange={(v) => update("customer_value", v)} />
+            <Question label={t("review.qCustomerValue")}>
+              <Segmented ariaLabel={t("review.aCustomerValue")} options={L.CUSTOMER_VALUE} value={form.customer_value} onChange={(v) => update("customer_value", v)} />
             </Question>
           </Section>
 
-          <Section n={4} title="Notes & decision">
-            <Question label="Notes" hint="Maps observations, review recency, website problems, Instagram activity, AI research, possible sales angle…">
-              <textarea className="control min-h-48 text-[15px]" aria-label="Notes" {...text("notes")} />
+          <Section n={4} title={t("review.s4")}>
+            <Question label={t("review.notes")} hint={t("review.notesHint")}>
+              <textarea className="control min-h-48 text-[15px]" aria-label={t("review.notes")} {...text("notes")} />
             </Question>
-            <Question label="Would I realistically contact this business?">
-              <Segmented ariaLabel="Would contact" options={CONTACT_DECISION} value={form.contact_decision} onChange={(v) => update("contact_decision", v)} />
+            <Question label={t("review.qContact")}>
+              <Segmented ariaLabel={t("review.aContact")} options={L.CONTACT_DECISION} value={form.contact_decision} onChange={(v) => update("contact_decision", v)} />
             </Question>
           </Section>
         </div>
@@ -253,20 +247,20 @@ export default function ReviewWorkspace({
                 <RejectControl size="lg" placement="top" align="left" pending={actions.reject.isPending} onReject={(reason, note) => decide(() => actions.reject.mutate({ id: b.id, reason, note }))} />
                 <Button variant="secondary" size="lg" aria-pressed={b.favorite} disabled={actions.favorite.isPending} onClick={() => decide(() => actions.favorite.mutate({ id: b.id, favorite: !b.favorite }))}>
                   <Heart className={`h-4 w-4 ${b.favorite ? "fill-amber-400 text-amber-500" : ""}`} />
-                  {b.favorite ? "Unfavorite" : "Favorite"}
+                  {b.favorite ? t("review.unfavorite") : t("review.favorite")}
                 </Button>
                 <Button variant="primary" size="lg" className="sm:min-w-36" disabled={actions.approve.isPending} onClick={() => decide(() => actions.approve.mutate(b.id))}>
-                  <Check className="h-4 w-4" strokeWidth={2.5} /> Approve
+                  <Check className="h-4 w-4" strokeWidth={2.5} /> {t("review.approve")}
                 </Button>
               </>
             ) : (
               <>
                 <Button variant="secondary" size="lg" disabled={actions.restore.isPending} onClick={() => actions.restore.mutate(b.id)}>
-                  <Undo2 className="h-4 w-4" /> Undo {b.record_state === "REJECTED" ? "reject" : "approval"}
+                  <Undo2 className="h-4 w-4" /> {b.record_state === "REJECTED" ? t("common.undoReject") : t("common.undoApproval")}
                 </Button>
                 {b.record_state === "APPROVED" && b.lead_record_id && (
                   <ButtonLink to={`/leads/${b.lead_record_id}`} variant="primary" size="lg">
-                    Open lead <ArrowRight className="h-4 w-4" />
+                    {t("common.openLead")} <ArrowRight className="h-4 w-4" />
                   </ButtonLink>
                 )}
               </>
@@ -310,25 +304,27 @@ function Question({ label, hint, children }: { label: string; hint?: string; chi
 
 /** OSM facts beside the user's verified values (spec §25: "OSM data" vs "Verified by me"). */
 function FactsPanel({ business: b, form }: { business: BusinessDetail; form: Review }) {
+  const { t } = useI18n();
+  const L = useLabels();
   const rows: { label: string; osm: string | null; href?: string | null; verified?: string | null; note?: ReactNode }[] = [
     {
-      label: "Website",
+      label: t("common.website"),
       osm: b.website,
       href: externalUrl(b.website),
       verified: form.manual_website,
-      note: b.website && b.normalized_website_type !== "OWN_WEBSITE" ? labelOf(WEBSITE_TYPES, b.normalized_website_type) : null,
+      note: b.website && b.normalized_website_type !== "OWN_WEBSITE" ? labelOf(L.WEBSITE_TYPES, b.normalized_website_type) : null,
     },
-    { label: "Phone", osm: b.phone, verified: form.manual_phone },
-    { label: "Email", osm: b.email, verified: form.manual_email },
+    { label: t("common.phone"), osm: b.phone, verified: form.manual_phone },
+    { label: t("common.email"), osm: b.email, verified: form.manual_email },
     { label: "Instagram", osm: b.osm_instagram, verified: form.manual_instagram },
-    { label: "Opening hours", osm: b.opening_hours },
+    { label: t("review.openingHours"), osm: b.opening_hours },
   ];
   return (
     <aside className="xl:sticky xl:top-6 xl:self-start">
       <Card className="flex flex-col gap-4 p-5">
         <div>
-          <h2 className="t-section">Business facts</h2>
-          <p className="t-caption mt-0.5">From OpenStreetMap. Missing means not recorded, not "doesn't exist".</p>
+          <h2 className="t-section">{t("review.facts")}</h2>
+          <p className="t-caption mt-0.5">{t("review.factsHint")}</p>
         </div>
         <dl className="flex flex-col gap-3">
           {rows.map((r) => (
@@ -336,7 +332,7 @@ function FactsPanel({ business: b, form }: { business: BusinessDetail; form: Rev
               <dt className="t-caption">{r.label}</dt>
               <dd className="flex flex-col gap-1">
                 <span>
-                  <OsmValue value={r.osm} href={r.href} unknownLabel="Unknown — not in OSM" />
+                  <OsmValue value={r.osm} href={r.href} unknownLabel={t("review.unknownNotInOsm")} />
                   {r.note && <Badge tone="amber" className="ml-2">{r.note}</Badge>}
                 </span>
                 {r.verified && (
@@ -350,13 +346,13 @@ function FactsPanel({ business: b, form }: { business: BusinessDetail; form: Rev
         </dl>
         <div className="flex flex-col gap-1 border-t border-line-soft pt-3 text-[13px] text-muted">
           <a className="text-accent-ink hover:underline" href={b.osm_url} target="_blank" rel="noreferrer">
-            OSM record {b.osm_type}/{b.osm_id} ↗
+            {t("review.osmRecord", { ref: `${b.osm_type}/${b.osm_id}` })} ↗
           </a>
           <span>
-            First seen {fmtDate(b.first_seen_at)} · in {b.times_seen} discovery run{b.times_seen === 1 ? "" : "s"}
+            {t("review.firstSeen", { date: fmtDate(b.first_seen_at), count: b.times_seen })}
           </span>
         </div>
-        <Disclosure summary={<span className="text-[13px]">All OSM tags ({Object.keys(b.raw_tags).length})</span>}>
+        <Disclosure summary={<span className="text-[13px]">{t("review.allTags", { count: Object.keys(b.raw_tags).length })}</span>}>
           <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1 font-mono text-xs">
             {Object.entries(b.raw_tags).map(([k, v]) => (
               <div key={k} className="contents">
@@ -372,11 +368,12 @@ function FactsPanel({ business: b, form }: { business: BusinessDetail; form: Rev
 }
 
 function SaveIndicator({ status, onRetry }: { status: SaveStatus; onRetry: () => void }) {
+  const { t } = useI18n();
   const map: Record<SaveStatus, [string, string]> = {
-    saved: ["Saved", "bg-emerald-500"],
-    dirty: ["Editing…", "bg-amber-400"],
-    saving: ["Saving…", "bg-zinc-400"],
-    error: ["Not saved", "bg-rose-500"],
+    saved: [t("save.saved"), "bg-emerald-500"],
+    dirty: [t("save.editing"), "bg-amber-400"],
+    saving: [t("save.saving"), "bg-zinc-400"],
+    error: [t("save.notSaved"), "bg-rose-500"],
   };
   const [label, dot] = map[status];
   return (
@@ -385,7 +382,7 @@ function SaveIndicator({ status, onRetry }: { status: SaveStatus; onRetry: () =>
       <span className="sr-only sm:not-sr-only">{label}</span>
       {status === "error" && (
         <button type="button" className="font-medium text-accent-ink hover:underline" onClick={onRetry}>
-          Retry
+          {t("save.retry")}
         </button>
       )}
     </span>

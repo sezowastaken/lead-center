@@ -5,6 +5,7 @@ export interface SectorRule {
   rule_type: string;
   tag_key: string | null;
   tag_value: string | null;
+  regex_key?: string | null;
   regex: string | null;
   enabled: boolean;
 }

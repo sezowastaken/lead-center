@@ -2,8 +2,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Download, RefreshCw, Search, Upload, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { api } from "../api/client";
-import { fmtDate, fmtDateTime } from "../api/format";
+import { fmtDate, fmtDateTime, fmtNumber } from "../api/format";
 import type { OsmDataStatus, OsmJob } from "../api/types";
+import { translateServerText, useI18n, type MessageKey } from "../i18n";
 import { Badge, Button, Card, CardHeader, ErrorNote } from "./ui";
 
 export function fmtBytes(n: number | null | undefined): string {
@@ -13,10 +14,18 @@ export function fmtBytes(n: number | null | undefined): string {
   return `${Math.max(1, Math.round(n / 1024))} KB`;
 }
 
-const JOB_LABEL: Record<OsmJob["kind"], string> = { download: "Download", update: "Update", import: "Import" };
+const JOB_LABEL: Record<OsmJob["kind"], MessageKey> = { download: "osm.jobDownload", update: "osm.jobUpdate", import: "osm.jobImport" };
+const JOB_STATUS: Record<OsmJob["status"], MessageKey> = {
+  running: "osm.statusRunning",
+  succeeded: "osm.statusDone",
+  failed: "osm.statusFailed",
+  cancelled: "osm.statusCancelled",
+  unavailable: "osm.statusUnavailable",
+};
 
 /** Settings → OpenStreetMap data: the local extract and the explicit actions that change it. */
 export default function OsmDataCard() {
+  const { t } = useI18n();
   const qc = useQueryClient();
   const status = useQuery({
     queryKey: ["osm-data"],
@@ -29,7 +38,7 @@ export default function OsmDataCard() {
   // When a running job finishes, refresh everything an import may have changed.
   const wasRunning = useRef(false);
   useEffect(() => {
-    if (wasRunning.current && !running) for (const key of ["businesses", "dashboard", "runs", "backups", "review-session"]) qc.invalidateQueries({ queryKey: [key] });
+    if (wasRunning.current && !running) for (const key of ["businesses", "dashboard", "runs", "backups", "review-session", "coverage"]) qc.invalidateQueries({ queryKey: [key] });
     wasRunning.current = running;
   }, [running, qc]);
 
@@ -43,53 +52,50 @@ export default function OsmDataCard() {
 
   return (
     <Card className="flex flex-col gap-5 p-5 sm:p-6">
-      <CardHeader
-        title="OpenStreetMap data"
-        description="A local copy of the Geofabrik Turkey extract. Imports add new Istanbul businesses to your review queue and never change your decisions, notes or leads."
-      />
+      <CardHeader title={t("osm.title")} description={t("osm.description")} />
       <ErrorNote error={status.error ?? act.error} />
 
       {d && (
         <>
           <dl className="grid grid-cols-1 gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
-            <Row label="Local file">
+            <Row label={t("osm.localFile")}>
               {d.pbf ? (
                 <span>
                   {d.file_name} · <strong className="font-medium">{fmtBytes(d.pbf.size_bytes)}</strong>
                 </span>
               ) : (
-                <span className="text-muted">Not downloaded yet</span>
+                <span className="text-muted">{t("osm.notDownloaded")}</span>
               )}
             </Row>
-            <Row label="OSM data date">{d.pbf?.data_timestamp ? fmtDateTime(d.pbf.data_timestamp) : "—"}</Row>
-            <Row label="Downloaded / updated">{d.pbf ? fmtDateTime(d.pbf.file_modified_at) : "—"}</Row>
-            <Row label="Last checked">
+            <Row label={t("osm.dataDate")}>{d.pbf?.data_timestamp ? fmtDateTime(d.pbf.data_timestamp) : "—"}</Row>
+            <Row label={t("osm.downloadedAt")}>{d.pbf ? fmtDateTime(d.pbf.file_modified_at) : "—"}</Row>
+            <Row label={t("osm.lastChecked")}>
               {d.last_check ? (
                 <span className="flex flex-wrap items-center gap-2">
                   {fmtDateTime(d.last_check.checked_at)}
                   {d.pbf && d.last_check.behind_by != null && (
                     <Badge tone={d.last_check.behind_by > 0 ? "amber" : "green"}>
-                      {d.last_check.behind_by > 0 ? `${d.last_check.behind_by} update${d.last_check.behind_by === 1 ? "" : "s"} behind` : "Up to date"}
+                      {d.last_check.behind_by > 0 ? t("osm.behind", { count: d.last_check.behind_by }) : t("osm.upToDate")}
                     </Badge>
                   )}
                 </span>
               ) : (
-                "Never"
+                t("osm.never")
               )}
             </Row>
-            <Row label="Last import">
+            <Row label={t("osm.lastImport")}>
               {d.last_import?.finished_at ? (
                 <span className="flex flex-col">
                   <span>
                     {fmtDateTime(d.last_import.finished_at)} <JobBadge job={d.last_import} />
                   </span>
-                  {d.last_import.message && <span className="t-caption">{d.last_import.message}</span>}
+                  {d.last_import.message && <span className="t-caption">{translateServerText(d.last_import.message, t)}</span>}
                 </span>
               ) : (
-                "Never"
+                t("osm.never")
               )}
             </Row>
-            <Row label="Latest on Geofabrik">
+            <Row label={t("osm.latestRemote")}>
               {d.last_check?.remote.latest_timestamp ? fmtDate(d.last_check.remote.latest_timestamp) : "—"}
               {downloadSize ? <span className="text-muted"> · {fmtBytes(downloadSize)}</span> : null}
             </Row>
@@ -99,15 +105,12 @@ export default function OsmDataCard() {
           {d.job && (d.job.status === "running" || (d.job.status !== "succeeded" && isRecent(d.job))) && <JobPanel job={d.job} onCancel={() => act.mutate(api.osmCancel)} />}
 
           {updateUnavailable && !running && d.last_update?.message && (
-            <p className="rounded-[var(--radius-control)] bg-amber-50 px-3 py-2 text-sm text-amber-900">{d.last_update.message}</p>
+            <p className="rounded-[var(--radius-control)] bg-amber-50 px-3 py-2 text-sm text-amber-900">{translateServerText(d.last_update.message, t)}</p>
           )}
 
           {confirmDownload ? (
             <div className="flex flex-col gap-3 rounded-[var(--radius-control)] border border-line bg-hover/60 p-4">
-              <p className="text-[15px]">
-                This downloads about <strong>{downloadSize ? fmtBytes(downloadSize) : "650 MB"}</strong> from download.geofabrik.de. Your current file stays in place until the new one is
-                complete and verified.
-              </p>
+              <p className="text-[15px]">{t("osm.confirmDownload", { size: downloadSize ? fmtBytes(downloadSize) : "650 MB" })}</p>
               <div className="flex flex-wrap gap-2">
                 <Button
                   variant="primary"
@@ -116,10 +119,10 @@ export default function OsmDataCard() {
                     act.mutate(api.osmDownload);
                   }}
                 >
-                  <Download className="h-4 w-4" /> Start download
+                  <Download className="h-4 w-4" /> {t("osm.startDownload")}
                 </Button>
                 <Button variant="ghost" onClick={() => setConfirmDownload(false)}>
-                  Cancel
+                  {t("common.cancel")}
                 </Button>
               </div>
             </div>
@@ -127,30 +130,27 @@ export default function OsmDataCard() {
             <div className="flex flex-wrap gap-2">
               {!d.pbf ? (
                 <Button variant="primary" disabled={running} onClick={() => setConfirmDownload(true)}>
-                  <Download className="h-4 w-4" /> Download latest data
+                  <Download className="h-4 w-4" /> {t("osm.downloadLatest")}
                 </Button>
               ) : (
                 <>
                   <Button variant="primary" disabled={running} onClick={() => act.mutate(api.osmImport)}>
-                    <Upload className="h-4 w-4" /> {d.last_import?.status === "succeeded" ? "Re-import" : "Import into Lead Center"}
+                    <Upload className="h-4 w-4" /> {d.last_import?.status === "succeeded" ? t("osm.reimport") : t("osm.import")}
                   </Button>
                   <Button variant="secondary" disabled={running || act.isPending} onClick={() => act.mutate(api.osmCheck)}>
-                    <Search className="h-4 w-4" /> Check for updates
+                    <Search className="h-4 w-4" /> {t("osm.check")}
                   </Button>
-                  <Button variant="secondary" disabled={running || updateUnavailable} onClick={() => act.mutate(api.osmUpdate)} title="Apply daily changes instead of downloading the whole file">
-                    <RefreshCw className="h-4 w-4" /> Update data
+                  <Button variant="secondary" disabled={running || updateUnavailable} onClick={() => act.mutate(api.osmUpdate)} title={t("osm.updateTitle")}>
+                    <RefreshCw className="h-4 w-4" /> {t("osm.update")}
                   </Button>
                   <Button variant={updateUnavailable ? "primary" : "ghost"} disabled={running} onClick={() => setConfirmDownload(true)}>
-                    <Download className="h-4 w-4" /> Download fresh copy
+                    <Download className="h-4 w-4" /> {t("osm.downloadFresh")}
                   </Button>
                 </>
               )}
             </div>
           )}
-          <p className="t-caption">
-            Nothing is downloaded automatically. “Update data” applies Geofabrik's daily changes to your file; if that isn't possible you'll be offered a fresh download. Imports cover
-            Istanbul (districts from your location library) and back up your database first.
-          </p>
+          <p className="t-caption">{t("osm.footnote")}</p>
         </>
       )}
     </Card>
@@ -171,23 +171,28 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 }
 
 function JobBadge({ job }: { job: OsmJob }) {
+  const { t } = useI18n();
   const tone = job.status === "succeeded" ? "green" : job.status === "running" ? "accent" : job.status === "cancelled" ? "neutral" : "amber";
-  const label = { running: "running", succeeded: "done", failed: "failed", cancelled: "cancelled", unavailable: "not available" }[job.status];
-  return <Badge tone={tone}>{label}</Badge>;
+  return <Badge tone={tone}>{t(JOB_STATUS[job.status])}</Badge>;
 }
 
 function JobPanel({ job, onCancel }: { job: OsmJob; onCancel: () => void }) {
+  const { t } = useI18n();
   const pct = job.total ? Math.min(100, Math.round((job.done / job.total) * 100)) : null;
   const bytes = job.kind === "download";
+  let progress = "";
+  if (bytes) progress = job.total ? t("osm.progressOf", { done: fmtBytes(job.done), total: fmtBytes(job.total) }) : fmtBytes(job.done);
+  else if (job.total) progress = t("osm.progressOf", { done: fmtNumber(job.done), total: fmtNumber(job.total) });
+  else if (job.done) progress = t("osm.objectsScanned", { count: fmtNumber(job.done) });
   return (
     <div className="flex flex-col gap-2 rounded-[var(--radius-control)] border border-line p-4" aria-live="polite">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="flex items-center gap-2 text-sm font-medium">
-          {JOB_LABEL[job.kind]}: {job.phase} <JobBadge job={job} />
+          {t(JOB_LABEL[job.kind])}: {translateServerText(job.phase, t)} <JobBadge job={job} />
         </span>
         {job.status === "running" && (
           <Button variant="ghost" size="sm" onClick={onCancel}>
-            <X className="h-3.5 w-3.5" /> Cancel
+            <X className="h-3.5 w-3.5" /> {t("common.cancel")}
           </Button>
         )}
       </div>
@@ -197,12 +202,12 @@ function JobPanel({ job, onCancel }: { job: OsmJob; onCancel: () => void }) {
             <div className={`h-2 rounded-full bg-accent transition-all ${pct == null ? "w-1/3 animate-pulse" : ""}`} style={pct != null ? { width: `${pct}%` } : undefined} />
           </div>
           <span className="t-caption tabular-nums">
-            {bytes ? `${fmtBytes(job.done)}${job.total ? ` of ${fmtBytes(job.total)}` : ""}` : job.total ? `${job.done.toLocaleString()} of ${job.total.toLocaleString()}` : job.done ? `${job.done.toLocaleString()} objects scanned` : ""}
+            {progress}
             {pct != null ? ` · ${pct}%` : ""}
           </span>
         </>
       )}
-      {job.status !== "running" && job.message && <p className="text-sm text-ink-2">{job.message}</p>}
+      {job.status !== "running" && job.message && <p className="text-sm text-ink-2">{translateServerText(job.message, t)}</p>}
     </div>
   );
 }

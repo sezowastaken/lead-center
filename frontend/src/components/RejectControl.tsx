@@ -1,6 +1,7 @@
 import { X } from "lucide-react";
 import { useState } from "react";
-import { REJECT_REASONS } from "../api/labels";
+import { useLabels } from "../api/labels";
+import { useI18n } from "../i18n";
 import { Button, Popover } from "./ui";
 
 /**
@@ -13,7 +14,7 @@ export default function RejectControl({
   size = "md",
   placement = "bottom",
   align = "left",
-  label = "Reject",
+  label,
 }: {
   onReject: (reason: string, note: string) => void;
   pending?: boolean;
@@ -22,6 +23,8 @@ export default function RejectControl({
   align?: "left" | "right";
   label?: string;
 }) {
+  const { t } = useI18n();
+  const L = useLabels();
   const [open, setOpen] = useState(false);
   const [note, setNote] = useState("");
   const close = () => setOpen(false);
@@ -29,13 +32,13 @@ export default function RejectControl({
   return (
     <div className="relative">
       <Button variant="danger" size={size} className="w-full" onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-haspopup="dialog">
-        <X className="h-4 w-4" /> {label}
+        <X className="h-4 w-4" /> {label ?? t("reject.button")}
       </Button>
       <Popover open={open} onClose={close} placement={placement} align={align}>
-        <div role="dialog" aria-label="Reject reason" className="flex flex-col gap-3">
-          <p className="t-label">Why reject?</p>
+        <div role="dialog" aria-label={t("reject.dialog")} className="flex flex-col gap-3">
+          <p className="t-label">{t("reject.why")}</p>
           <div className="flex flex-col">
-            {REJECT_REASONS.map((r) => (
+            {L.REJECT_REASONS.map((r) => (
               <button
                 key={r.value}
                 type="button"
@@ -50,8 +53,8 @@ export default function RejectControl({
               </button>
             ))}
           </div>
-          <input className="control" placeholder="Optional note (add before choosing)" value={note} onChange={(e) => setNote(e.target.value)} />
-          <p className="t-caption">The business stays in your registry and won't return to the review queue. You can undo this.</p>
+          <input className="control" placeholder={t("reject.notePlaceholder")} value={note} onChange={(e) => setNote(e.target.value)} />
+          <p className="t-caption">{t("reject.explain")}</p>
         </div>
       </Popover>
     </div>

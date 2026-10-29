@@ -39,7 +39,7 @@ def test_coverage_totals_distributions_and_matrix(db, tmp_path):
         assert sectors["Burger"]["count"] == 0  # searchable sectors stay visible as coverage gaps
         assert round(sum(r["pct"] for r in waiting["sectors"])) == 100
         locations = {r["name"]: r for r in waiting["locations"]}
-        assert locations["Istanbul (no district)"]["count"] == 1
+        assert locations["Istanbul"]["count"] == 1 and locations["Istanbul"]["type"] == "CITY"
         assert locations["Kadıköy"]["count"] == 4 and locations["Unassigned"]["count"] == 1
         assert sum(cell["count"] for cell in waiting["cells"]) == 6
 

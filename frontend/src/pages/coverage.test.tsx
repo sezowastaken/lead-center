@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 import type { Coverage } from "../api/types";
+import { translate } from "../i18n";
 import { browseLink, weightHint } from "../lib/logic";
 import { mockApi } from "../test/fixtures";
 import CoverageTab from "./CoveragePage";
@@ -31,7 +32,7 @@ const coverage = (population: string): Coverage => ({
   ],
   locations: [
     { id: 2, name: "Kadıköy", count: 70, pct: 70, type: "DISTRICT" },
-    { id: 1, name: "Istanbul (no district)", count: 29, pct: 29, type: "CITY" },
+    { id: 1, name: "Istanbul", count: 29, pct: 29, type: "CITY" },
     { id: null, name: "Unassigned", count: 1, pct: 1, type: null },
   ],
   cells: [
@@ -87,7 +88,8 @@ describe("Review weights in Settings", () => {
       const put = calls.find((c) => c.method === "PUT" && c.url.endsWith("/sectors/6/review-weight"));
       expect(put?.body).toEqual({ review_weight: 1.2 });
     });
-    expect(weightHint(2)).toBe("much more often");
-    expect(weightHint(0.6)).toBe("less often");
+    const t = (k: Parameters<typeof translate>[1], v?: Parameters<typeof translate>[2]) => translate("en", k, v);
+    expect(weightHint(2, t)).toBe("much more often");
+    expect(weightHint(0.6, t)).toBe("less often");
   });
 });

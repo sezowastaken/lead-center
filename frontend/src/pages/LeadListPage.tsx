@@ -4,14 +4,18 @@ import { Link, useSearchParams } from "react-router-dom";
 import { api } from "../api/client";
 import { fmtDate, fmtDay, isDue } from "../api/format";
 import { useSectors } from "../api/hooks";
-import { CONTACT_CHANNELS, CRM_STAGES, labelOf } from "../api/labels";
+import { labelOf, useLabels } from "../api/labels";
 import type { Lead } from "../api/types";
+import { useI18n, useSectorName } from "../i18n";
 import { Badge, Button, ButtonLink, EmptyState, ErrorNote, PageHeader, SelectInput, StageBadge } from "../components/ui";
 
 const CLOSED = new Set(["WON", "LOST"]);
 
 /** Approved businesses (spec §29). Sorted by next follow-up, then most recently updated. */
 export default function LeadListPage() {
+  const { t } = useI18n();
+  const L = useLabels();
+  const sectorName = useSectorName();
   const sectors = useSectors().data ?? [];
   const [params, setParams] = useSearchParams();
   const stage = params.get("stage") ?? "";
@@ -33,25 +37,25 @@ export default function LeadListPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Leads" description="Approved businesses. Contact them yourself, then log what you sent and what happened." />
+      <PageHeader title={t("nav.leads")} description={t("leads.description")} />
 
       <div className="flex flex-wrap items-center gap-3">
-        <input className="control w-full sm:w-64" type="search" placeholder="Search leads" aria-label="Search leads" value={q} onChange={(e) => set("q", e.target.value)} />
-        <SelectInput className="w-full sm:w-48" ariaLabel="Stage" value={stage} onChange={(v) => set("stage", v)} placeholder="All stages" options={CRM_STAGES} />
-        <SelectInput className="w-full sm:w-56" ariaLabel="Sector" value={sectorId} onChange={(v) => set("sector_id", v)} placeholder="All sectors" options={sectors.map((s) => ({ value: String(s.id), label: s.name }))} />
+        <input className="control w-full sm:w-64" type="search" placeholder={t("leads.search")} aria-label={t("leads.search")} value={q} onChange={(e) => set("q", e.target.value)} />
+        <SelectInput className="w-full sm:w-48" ariaLabel={t("leads.stage")} value={stage} onChange={(v) => set("stage", v)} placeholder={t("leads.allStages")} options={L.CRM_STAGES} />
+        <SelectInput className="w-full sm:w-56" ariaLabel={t("common.sector")} value={sectorId} onChange={(v) => set("sector_id", v)} placeholder={t("common.allSectors")} options={sectors.map((s) => ({ value: String(s.id), label: sectorName(s.name) }))} />
         <Button variant={due ? "primary" : "secondary"} aria-pressed={due} onClick={() => set("due", due ? "" : "1")}>
-          <BellRing className="h-4 w-4" /> Follow-ups due
+          <BellRing className="h-4 w-4" /> {t("dash.followUps")}
         </Button>
       </div>
 
       <ErrorNote error={leads.error} />
-      {leads.isLoading && <p className="t-caption">Loading…</p>}
+      {leads.isLoading && <p className="t-caption">{t("common.loading")}</p>}
       {leads.data && items.length === 0 && (
         <EmptyState
-          title={due ? "No follow-ups due" : "No leads here yet"}
-          action={!due && <ButtonLink to="/review" variant="primary">Go to Review</ButtonLink>}
+          title={due ? t("leads.noDueTitle") : t("leads.emptyTitle")}
+          action={!due && <ButtonLink to="/review" variant="primary">{t("leads.goToReview")}</ButtonLink>}
         >
-          {due ? "Nothing needs a follow-up today." : "Approve businesses during review and they appear here."}
+          {due ? t("leads.noDueBody") : t("leads.emptyBody")}
         </EmptyState>
       )}
       <ul className="flex flex-col gap-3">
@@ -66,6 +70,9 @@ export default function LeadListPage() {
 }
 
 function LeadRow({ lead: l }: { lead: Lead }) {
+  const { t } = useI18n();
+  const L = useLabels();
+  const sectorName = useSectorName();
   const due = isDue(l.next_follow_up_at) && !CLOSED.has(l.stage);
   const note = l.latest_note ?? l.personalized_angle;
   return (
@@ -75,11 +82,11 @@ function LeadRow({ lead: l }: { lead: Lead }) {
     >
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-[16px] font-semibold">{l.display_name ?? "Unnamed"}</span>
-          <StageBadge stage={l.stage} label={labelOf(CRM_STAGES, l.stage)} />
+          <span className="text-[16px] font-semibold">{l.display_name ?? t("common.unnamed")}</span>
+          <StageBadge stage={l.stage} label={labelOf(L.CRM_STAGES, l.stage)} />
         </div>
         <p className="mt-0.5 text-sm text-muted">
-          {l.business.sector?.name} · {l.business.location?.name}
+          {sectorName(l.business.sector?.name)} · {l.business.location?.name}
         </p>
         {note && (
           <p className="mt-2 flex items-start gap-1.5 text-sm text-ink-2">
@@ -90,20 +97,20 @@ function LeadRow({ lead: l }: { lead: Lead }) {
       </div>
       <dl className="grid grid-cols-3 gap-3 text-sm">
         <div>
-          <dt className="t-caption">Channel</dt>
-          <dd className="text-ink-2">{labelOf(CONTACT_CHANNELS, l.preferred_contact_channel) || "—"}</dd>
+          <dt className="t-caption">{t("leads.channel")}</dt>
+          <dd className="text-ink-2">{labelOf(L.CONTACT_CHANNELS, l.preferred_contact_channel) || "—"}</dd>
         </div>
         <div>
-          <dt className="t-caption">Last contact</dt>
-          <dd className="text-ink-2">{l.last_contact_at ? fmtDate(l.last_contact_at) : "Not yet"}</dd>
+          <dt className="t-caption">{t("leads.lastContact")}</dt>
+          <dd className="text-ink-2">{l.last_contact_at ? fmtDate(l.last_contact_at) : t("leads.notYet")}</dd>
         </div>
         <div>
-          <dt className="t-caption">Follow-up</dt>
+          <dt className="t-caption">{t("leads.followUp")}</dt>
           <dd>{due ? <Badge tone="amber">{fmtDay(l.next_follow_up_at)}</Badge> : <span className="text-ink-2">{fmtDay(l.next_follow_up_at)}</span>}</dd>
         </div>
       </dl>
       <span className="hidden items-center gap-1 text-sm font-medium text-accent-ink md:flex">
-        Open <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+        {t("leads.open")} <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
       </span>
     </Link>
   );

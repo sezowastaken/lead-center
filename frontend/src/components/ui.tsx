@@ -1,8 +1,8 @@
 import { Check, ChevronDown, Inbox } from "lucide-react";
 import { useEffect, useRef, useState, type ButtonHTMLAttributes, type ReactNode } from "react";
 import { Link, NavLink } from "react-router-dom";
-import { STATE_LABEL } from "../api/labels";
-import type { Option } from "../api/labels";
+import { useLabels, type Option } from "../api/labels";
+import { useI18n } from "../i18n";
 
 /* ---------- Buttons ---------- */
 
@@ -101,8 +101,9 @@ export function EmptyState({ title, children, action }: { title: string; childre
 }
 
 export function Tabs({ items }: { items: { to: string; label: string; end?: boolean; count?: number }[] }) {
+  const { t } = useI18n();
   return (
-    <nav className="flex gap-1 overflow-x-auto overflow-y-hidden shadow-[inset_0_-1px_0_var(--color-line)]" aria-label="Sections">
+    <nav className="flex gap-1 overflow-x-auto overflow-y-hidden shadow-[inset_0_-1px_0_var(--color-line)]" aria-label={t("common.sections")}>
       {items.map((t) => (
         <NavLink
           key={t.to}
@@ -219,7 +220,8 @@ const STATE_TONE: Record<string, Tone> = {
 };
 
 export function StateBadge({ state }: { state: string }) {
-  return <Badge tone={STATE_TONE[state] ?? "neutral"}>{STATE_LABEL[state] ?? state}</Badge>;
+  const L = useLabels();
+  return <Badge tone={STATE_TONE[state] ?? "neutral"}>{L.state(state)}</Badge>;
 }
 
 const STAGE_TONE: Record<string, Tone> = {
@@ -248,11 +250,12 @@ export function ErrorNote({ error }: { error: unknown }) {
 }
 
 /** An OSM field. Missing means "not recorded in OSM" — never "does not exist" (spec §3.2). */
-export function OsmValue({ value, href, unknownLabel = "Unknown" }: { value: string | null | undefined; href?: string | null; unknownLabel?: string }) {
+export function OsmValue({ value, href, unknownLabel }: { value: string | null | undefined; href?: string | null; unknownLabel?: string }) {
+  const { t } = useI18n();
   if (!value) {
     return (
-      <span className="text-muted" title="Not recorded in OpenStreetMap. This does not mean it doesn't exist.">
-        {unknownLabel}
+      <span className="text-muted" title={t("common.notInOsmHint")}>
+        {unknownLabel ?? t("common.unknown")}
       </span>
     );
   }

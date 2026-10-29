@@ -1,3 +1,4 @@
+import { getLang, translate } from "../i18n";
 import type { Business } from "./types";
 
 // Manual research links (spec §23). Plain URLs — no Google API involved.
@@ -19,5 +20,5 @@ export function externalUrl(url: string | null | undefined): string | null {
 }
 
 export function displayName(b: Business): string {
-  return b.name ?? "Unnamed (no name in OSM)";
+  return b.name ?? translate(getLang(), "common.unnamedOsm");
 }

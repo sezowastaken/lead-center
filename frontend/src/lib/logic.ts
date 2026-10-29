@@ -1,18 +1,20 @@
 // Pure UI logic, kept out of components so it can be unit tested.
 
+import { fmtNumber, fmtPercent } from "../api/format";
 import type { BusinessFilters, Ratio } from "../api/types";
+import type { MessageKey, T } from "../i18n";
 
 /* ---------- Discover: website filter (one control for has_website + website_type) ---------- */
 
-export const WEBSITE_FILTER_OPTIONS = [
-  { value: "has:true", label: "Has a website in OSM" },
-  { value: "has:false", label: "No website recorded (unknown)" },
-  { value: "type:OWN_WEBSITE", label: "Own website" },
-  { value: "type:SOCIAL_ONLY", label: "Social media only" },
-  { value: "type:THIRD_PARTY_BOOKING", label: "Booking platform only" },
-  { value: "type:WHATSAPP_ONLY", label: "WhatsApp link only" },
-  { value: "type:MARKETPLACE_PROFILE", label: "Marketplace profile" },
-  { value: "type:BROKEN_OR_INVALID", label: "Broken / invalid URL" },
+export const WEBSITE_FILTER_OPTIONS: { value: string; label: MessageKey }[] = [
+  { value: "has:true", label: "websiteFilter.has" },
+  { value: "has:false", label: "websiteFilter.none" },
+  { value: "type:OWN_WEBSITE", label: "websiteFilter.own" },
+  { value: "type:SOCIAL_ONLY", label: "websiteFilter.social" },
+  { value: "type:THIRD_PARTY_BOOKING", label: "websiteFilter.booking" },
+  { value: "type:WHATSAPP_ONLY", label: "websiteFilter.whatsapp" },
+  { value: "type:MARKETPLACE_PROFILE", label: "websiteFilter.marketplace" },
+  { value: "type:BROKEN_OR_INVALID", label: "websiteFilter.broken" },
 ];
 
 export function websiteFilterValue(f: BusinessFilters): string {
@@ -43,7 +45,7 @@ export const LOW_SAMPLE = 5;
 export function ratioView(r: Ratio): { fraction: string; pct: string | null; lowSample: boolean } {
   return {
     fraction: `${r.num} / ${r.den}`,
-    pct: r.pct == null ? null : `${Math.round(r.pct)}%`,
+    pct: r.pct == null ? null : fmtPercent(r.pct),
     lowSample: r.den < LOW_SAMPLE,
   };
 }
@@ -73,15 +75,15 @@ export function browseLink(state: string, ids: { sector?: number | null; locatio
 export const WEIGHT_MIN = 0.2;
 export const WEIGHT_MAX = 3;
 
-export function weightLabel(w: number): string {
-  return `priority ×${w.toFixed(1)}`;
+export function weightLabel(w: number, t: T): string {
+  return t("weights.label", { weight: fmtNumber(w, 1) });
 }
 
 /** A plain-language hint for a weight value, shown next to the slider. */
-export function weightHint(w: number): string {
-  if (w >= 1.75) return "much more often";
-  if (w >= 1.25) return "more often";
-  if (w > 0.85) return "normal";
-  if (w >= 0.5) return "less often";
-  return "rarely, until the end";
+export function weightHint(w: number, t: T): string {
+  if (w >= 1.75) return t("weights.muchMore");
+  if (w >= 1.25) return t("weights.more");
+  if (w > 0.85) return t("weights.normal");
+  if (w >= 0.5) return t("weights.less");
+  return t("weights.rarely");
 }

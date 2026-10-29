@@ -7,7 +7,7 @@ from sqlalchemy import case, func, select, true
 from sqlalchemy.orm import Session
 
 from app.models import Location, OSMBusiness, Sector
-from app.models.enums import LocationType, RecordState
+from app.models.enums import RecordState
 from app.repositories.businesses import STATE_VIEWS
 
 # population -> record states (None = all), and the matching Browse "state" filter
@@ -65,9 +65,9 @@ def build_coverage(db: Session, population: str) -> dict:
     for loc in db.scalars(select(Location).order_by(Location.id)):
         n = by_location.get(loc.id, 0)
         if n or loc.enabled:
-            # City-level rows are businesses inside the city but outside every configured district.
-            name = f"{loc.name} (no district)" if loc.location_type == LocationType.CITY else loc.name
-            locations.append({"id": loc.id, "name": name, "type": loc.location_type, "count": n, "pct": _pct(n, population_total)})
+            # City-level rows (type CITY) are businesses inside the city but outside every configured
+            # district; the UI labels them "<city> (no district)" in the user's language.
+            locations.append({"id": loc.id, "name": loc.name, "type": loc.location_type, "count": n, "pct": _pct(n, population_total)})
     if by_location.get(None):
         n = by_location[None]
         locations.append({"id": None, "name": "Unassigned", "type": None, "count": n, "pct": _pct(n, population_total)})
