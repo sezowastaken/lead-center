@@ -64,6 +64,8 @@ export interface Review {
   commercial_value: string | null;
   customer_value: string | null;
   contact_decision: string | null;
+  sales_angle_strength: string | null;
+  demo_potential: string | null;
   manual_phone: string | null;
   manual_website: string | null;
   manual_instagram: string | null;
@@ -105,9 +107,28 @@ export interface Business {
   lead_record_id: number | null;
 }
 
+/** Business suitability score — computed by the backend only (services/review/scoring.py). */
+export type ScoreBand = "A" | "B" | "C" | "D" | "E";
+export type ScoreStatus = "PROVISIONAL" | "COMPLETE" | "NOT_ELIGIBLE";
+export type OutreachApproach = "DEMO_FIRST" | "AUDIT_FIRST" | "PERSONALIZED_OUTREACH" | "STANDARD_OUTREACH" | "HOLD";
+
+export interface SuitabilitySummary {
+  score: number | null; // null when NOT_ELIGIBLE
+  band: ScoreBand | null;
+  status: ScoreStatus;
+  completeness: number; // 0–100
+  recommendation: OutreachApproach;
+}
+
+export interface Suitability extends SuitabilitySummary {
+  points: number;
+  reasons: { code: string; value: string | number | null }[];
+  components: { key: "website" | "commercial" | "reachability" | "activity" | "customer" | "sales"; points: number; max: number; known: number }[];
+}
+
 export interface BusinessDetail extends Business {
   raw_tags: Record<string, string>;
-  review: (Review & { reviewed_at: string; updated_at: string }) | null;
+  review: (Review & { reviewed_at: string; updated_at: string; suitability: Suitability | null }) | null;
 }
 
 export interface BusinessPage {
@@ -169,10 +190,12 @@ export interface Lead extends LeadFields {
   contact_email: string | null;
   display_name: string | null;
   latest_note: string | null;
+  suitability: SuitabilitySummary | null;
 }
 
 export interface LeadDetail extends Lead {
   events: OutreachEvent[];
+  suitability: Suitability | null;
 }
 
 export interface Ratio {

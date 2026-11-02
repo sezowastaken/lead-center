@@ -159,3 +159,40 @@ class ContactDecision(StrEnum):
     YES = "YES"
     MAYBE = "MAYBE"
     NO = "NO"
+
+
+class SalesAngleStrength(StrEnum):
+    STRONG = "STRONG"
+    MEDIUM = "MEDIUM"
+    WEAK = "WEAK"
+
+
+class DemoPotential(StrEnum):
+    HIGH = "HIGH"
+    MEDIUM = "MEDIUM"
+    LOW = "LOW"
+
+
+# --- Business suitability score (derived from the manual review; see services/review/scoring.py) ---
+
+
+class ScoreStatus(StrEnum):
+    PROVISIONAL = "PROVISIONAL"  # some scoring answers are still missing
+    COMPLETE = "COMPLETE"
+    NOT_ELIGIBLE = "NOT_ELIGIBLE"  # business confirmed inactive: no score, never auto-rejected
+
+
+class ScoreBand(StrEnum):
+    A = "A"  # 85–100 excellent fit
+    B = "B"  # 70–84 strong fit
+    C = "C"  # 55–69 possible fit
+    D = "D"  # 40–54 low priority
+    E = "E"  # 0–39 very low priority
+
+
+class OutreachApproach(StrEnum):
+    DEMO_FIRST = "DEMO_FIRST"
+    AUDIT_FIRST = "AUDIT_FIRST"
+    PERSONALIZED_OUTREACH = "PERSONALIZED_OUTREACH"
+    STANDARD_OUTREACH = "STANDARD_OUTREACH"
+    HOLD = "HOLD"

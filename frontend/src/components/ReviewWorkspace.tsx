@@ -10,6 +10,7 @@ import type { BusinessDetail, Review } from "../api/types";
 import { useI18n, usePlaceName, useSectorName, type T } from "../i18n";
 import QuickLinks from "./QuickLinks";
 import RejectControl from "./RejectControl";
+import { ScoreBadge, ScorePanel } from "./Suitability";
 import { Badge, Button, ButtonLink, Card, CheckboxGrid, Disclosure, ErrorNote, OsmValue, SelectInput, Segmented, StateBadge, ToggleChips } from "./ui";
 
 export const EMPTY_REVIEW: Review = {
@@ -22,6 +23,8 @@ export const EMPTY_REVIEW: Review = {
   commercial_value: null,
   customer_value: null,
   contact_decision: null,
+  sales_angle_strength: null,
+  demo_potential: null,
   manual_phone: null,
   manual_website: null,
   manual_instagram: null,
@@ -119,6 +122,9 @@ export default function ReviewWorkspace({
   const actionError = actions.reject.error ?? actions.favorite.error ?? actions.approve.error ?? actions.restore.error;
   const decided = b.record_state === "REJECTED" || b.record_state === "APPROVED";
   const showBrand = form.rebrand_status === "POSSIBLE" || form.rebrand_status === "CONFIRMED" || !!form.current_brand_name;
+  // The score comes from the backend with each save; while edits are pending it is shown dimmed.
+  const suitability = (save.data ?? b).review?.suitability ?? null;
+  const scoreStale = status !== "saved";
 
   return (
     <div className="flex flex-col gap-6">
@@ -152,7 +158,10 @@ export default function ReviewWorkspace({
       </Card>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
-        <FactsPanel business={b} form={form} />
+        <div className="flex min-w-0 flex-col gap-6 xl:sticky xl:top-6 xl:self-start">
+          {suitability && <ScorePanel s={suitability} stale={scoreStale} className="hidden xl:flex" />}
+          <FactsPanel business={b} form={form} />
+        </div>
 
         <div className="flex min-w-0 flex-col gap-6 xl:order-first">
           <Section n={1} title={t("review.s1")} description={t("review.s1Hint")}>
@@ -223,6 +232,14 @@ export default function ReviewWorkspace({
             <Question label={t("review.qCustomerValue")}>
               <Segmented ariaLabel={t("review.aCustomerValue")} options={L.CUSTOMER_VALUE} value={form.customer_value} onChange={(v) => update("customer_value", v)} />
             </Question>
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+              <Question label={t("review.qSalesAngle")}>
+                <Segmented ariaLabel={t("review.aSalesAngle")} options={L.SALES_ANGLE} value={form.sales_angle_strength} onChange={(v) => update("sales_angle_strength", v)} />
+              </Question>
+              <Question label={t("review.qDemo")}>
+                <Segmented ariaLabel={t("review.aDemo")} options={L.DEMO_POTENTIAL} value={form.demo_potential} onChange={(v) => update("demo_potential", v)} />
+              </Question>
+            </div>
           </Section>
 
           <Section n={4} title={t("review.s4")}>
@@ -233,6 +250,9 @@ export default function ReviewWorkspace({
               <Segmented ariaLabel={t("review.aContact")} options={L.CONTACT_DECISION} value={form.contact_decision} onChange={(v) => update("contact_decision", v)} />
             </Question>
           </Section>
+
+          {/* Below xl the score sits after the questions, so it never pushes the form while you fill it in. */}
+          {suitability && <ScorePanel s={suitability} stale={scoreStale} className="xl:hidden" />}
         </div>
       </div>
 
@@ -240,6 +260,7 @@ export default function ReviewWorkspace({
       <div className="sticky bottom-4 z-20 mt-2">
         <div className="card flex flex-wrap items-center gap-3 p-2.5 shadow-[var(--shadow-raised)] sm:p-3 sm:px-4">
           <SaveIndicator status={status} onRetry={() => void flush().catch(() => {})} />
+          {suitability && <ScoreBadge s={suitability} className={scoreStale ? "opacity-60" : ""} />}
           {/* Narrow screens: one row of equal buttons. Wider: right-aligned, Approve dominant. */}
           <div className="flex min-w-0 flex-1 items-center justify-end gap-2 [&>*]:flex-1 sm:[&>*]:flex-none">
             {!decided ? (
@@ -320,7 +341,7 @@ function FactsPanel({ business: b, form }: { business: BusinessDetail; form: Rev
     { label: t("review.openingHours"), osm: b.opening_hours },
   ];
   return (
-    <aside className="xl:sticky xl:top-6 xl:self-start">
+    <aside>
       <Card className="flex flex-col gap-4 p-5">
         <div>
           <h2 className="t-section">{t("review.facts")}</h2>

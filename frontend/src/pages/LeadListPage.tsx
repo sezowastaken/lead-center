@@ -6,12 +6,13 @@ import { fmtDate, fmtDay, isDue } from "../api/format";
 import { useSectors } from "../api/hooks";
 import { labelOf, useLabels } from "../api/labels";
 import type { Lead } from "../api/types";
-import { useI18n, useSectorName } from "../i18n";
+import { useI18n, usePlaceName, useSectorName } from "../i18n";
+import { ScoreBadge } from "../components/Suitability";
 import { Badge, Button, ButtonLink, EmptyState, ErrorNote, PageHeader, SelectInput, StageBadge } from "../components/ui";
 
 const CLOSED = new Set(["WON", "LOST"]);
 
-/** Approved businesses (spec §29). Sorted by next follow-up, then most recently updated. */
+/** Approved businesses (spec §29). Sorted by next follow-up (default) or by suitability score. */
 export default function LeadListPage() {
   const { t } = useI18n();
   const L = useLabels();
@@ -22,6 +23,9 @@ export default function LeadListPage() {
   const sectorId = params.get("sector_id") ?? "";
   const q = params.get("q") ?? "";
   const due = params.get("due") === "1";
+  const band = params.get("band") ?? "";
+  const approach = params.get("recommendation") ?? "";
+  const sort = params.get("sort") ?? "";
   const set = (key: string, v: string) => {
     const next = new URLSearchParams(params);
     if (v) next.set(key, v);
@@ -30,8 +34,16 @@ export default function LeadListPage() {
   };
 
   const leads = useQuery({
-    queryKey: ["leads", { stage, sectorId, q }],
-    queryFn: () => api.leads({ stage: stage || undefined, sector_id: sectorId || undefined, q: q || undefined }),
+    queryKey: ["leads", { stage, sectorId, q, band, approach, sort }],
+    queryFn: () =>
+      api.leads({
+        stage: stage || undefined,
+        sector_id: sectorId || undefined,
+        q: q || undefined,
+        band: band || undefined,
+        recommendation: approach || undefined,
+        sort: sort || undefined,
+      }),
   });
   const items = (leads.data ?? []).filter((l) => !due || (isDue(l.next_follow_up_at) && !CLOSED.has(l.stage)));
 
@@ -43,6 +55,23 @@ export default function LeadListPage() {
         <input className="control w-full sm:w-64" type="search" placeholder={t("leads.search")} aria-label={t("leads.search")} value={q} onChange={(e) => set("q", e.target.value)} />
         <SelectInput className="w-full sm:w-48" ariaLabel={t("leads.stage")} value={stage} onChange={(v) => set("stage", v)} placeholder={t("leads.allStages")} options={L.CRM_STAGES} />
         <SelectInput className="w-full sm:w-56" ariaLabel={t("common.sector")} value={sectorId} onChange={(v) => set("sector_id", v)} placeholder={t("common.allSectors")} options={sectors.map((s) => ({ value: String(s.id), label: sectorName(s.name) }))} />
+        <SelectInput
+          className="w-full sm:w-48"
+          ariaLabel={t("leads.band")}
+          value={band}
+          onChange={(v) => set("band", v)}
+          placeholder={t("leads.allBands")}
+          options={[...L.SCORE_BANDS, { value: "NOT_ELIGIBLE", label: t("leads.bandNotEligible") }, { value: "NONE", label: t("leads.bandNone") }]}
+        />
+        <SelectInput className="w-full sm:w-56" ariaLabel={t("leads.approach")} value={approach} onChange={(v) => set("recommendation", v)} placeholder={t("leads.allApproaches")} options={L.APPROACHES} />
+        <SelectInput
+          className="w-full sm:w-52"
+          ariaLabel={t("leads.sort")}
+          value={sort}
+          onChange={(v) => set("sort", v)}
+          placeholder={t("leads.sortFollowUp")}
+          options={[{ value: "score", label: t("leads.sortScore") }]}
+        />
         <Button variant={due ? "primary" : "secondary"} aria-pressed={due} onClick={() => set("due", due ? "" : "1")}>
           <BellRing className="h-4 w-4" /> {t("dash.followUps")}
         </Button>
@@ -73,6 +102,7 @@ function LeadRow({ lead: l }: { lead: Lead }) {
   const { t } = useI18n();
   const L = useLabels();
   const sectorName = useSectorName();
+  const placeName = usePlaceName();
   const due = isDue(l.next_follow_up_at) && !CLOSED.has(l.stage);
   const note = l.latest_note ?? l.personalized_angle;
   return (
@@ -86,8 +116,14 @@ function LeadRow({ lead: l }: { lead: Lead }) {
           <StageBadge stage={l.stage} label={labelOf(L.CRM_STAGES, l.stage)} />
         </div>
         <p className="mt-0.5 text-sm text-muted">
-          {sectorName(l.business.sector?.name)} · {l.business.location?.name}
+          {sectorName(l.business.sector?.name)} · {placeName(l.business.location?.name)}
         </p>
+        {l.suitability && (
+          <p className="mt-1.5 flex flex-wrap items-center gap-2 text-sm">
+            <ScoreBadge s={l.suitability} />
+            <span className="text-ink-2">{labelOf(L.APPROACHES, l.suitability.recommendation)}</span>
+          </p>
+        )}
         {note && (
           <p className="mt-2 flex items-start gap-1.5 text-sm text-ink-2">
             <MessageSquare className="mt-0.5 h-3.5 w-3.5 shrink-0 text-subtle" />

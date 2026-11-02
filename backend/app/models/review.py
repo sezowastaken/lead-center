@@ -24,6 +24,8 @@ class ManualReview(Base):
     customer_value: Mapped[str | None] = mapped_column(String(20))
 
     contact_decision: Mapped[str | None] = mapped_column(String(20))
+    sales_angle_strength: Mapped[str | None] = mapped_column(String(20))
+    demo_potential: Mapped[str | None] = mapped_column(String(20))
 
     manual_phone: Mapped[str | None] = mapped_column(Text)
     manual_website: Mapped[str | None] = mapped_column(Text)
@@ -32,6 +34,15 @@ class ManualReview(Base):
     current_brand_name: Mapped[str | None] = mapped_column(Text)
 
     notes: Mapped[str | None] = mapped_column(Text)
+
+    # Suitability score: a stored copy for sorting/filtering, always recomputable from the fields above
+    # (services/review/scoring.py is the only place the formula lives).
+    suitability_score: Mapped[int | None] = mapped_column(Integer, index=True)
+    suitability_band: Mapped[str | None] = mapped_column(String(2))
+    suitability_status: Mapped[str | None] = mapped_column(String(20))
+    suitability_completeness: Mapped[int | None] = mapped_column(Integer)
+    suitability_recommendation: Mapped[str | None] = mapped_column(String(30))
+    suitability_version: Mapped[int | None] = mapped_column(Integer)
 
     reviewed_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=utcnow, onupdate=utcnow)

@@ -6,6 +6,7 @@ from app.database import utcnow
 from app.models import LeadRecord, ManualReview, OSMBusiness, ReviewReachability, WebsiteIssue
 from app.models.enums import CrmStage, RecordState, RejectReason
 from app.schemas.business import ReviewIn
+from app.services.review import scoring
 
 _SCALAR_REVIEW_FIELDS = [k for k in ReviewIn.model_fields if k not in ("website_issues", "reachability")]
 
@@ -29,6 +30,8 @@ def save_review(db: Session, business: OSMBusiness, data: ReviewIn) -> ManualRev
     review.website_issues.extend(WebsiteIssue(issue_code=c) for c in dict.fromkeys(data.website_issues))
     review.reachability.extend(ReviewReachability(channel=c) for c in dict.fromkeys(data.reachability))
     review.updated_at = utcnow()
+    db.flush()
+    scoring.store(review)
 
     if business.record_state == RecordState.DISCOVERED:
         business.record_state = RecordState.IN_REVIEW

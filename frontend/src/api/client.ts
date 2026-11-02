@@ -78,7 +78,7 @@ export const api = {
   approve: (id: number) => post<BusinessDetail>(`/businesses/${id}/approve`),
   restore: (id: number) => post<BusinessDetail>(`/businesses/${id}/restore`),
 
-  leads: (filters: { stage?: string; sector_id?: string; q?: string }) => request<Lead[]>(`/leads${qs(filters)}`),
+  leads: (filters: { stage?: string; sector_id?: string; q?: string; band?: string; recommendation?: string; sort?: string }) => request<Lead[]>(`/leads${qs(filters)}`),
   lead: (id: number) => request<LeadDetail>(`/leads/${id}`),
   updateLead: (id: number, fields: LeadFields) =>
     request<LeadDetail>(`/leads/${id}`, { method: "PUT", body: JSON.stringify(fields) }),

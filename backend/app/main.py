@@ -12,6 +12,7 @@ from app.config import get_settings
 from app.database import SessionLocal
 from app.migrate import upgrade_to_head
 from app.seed.loader import sync_seed_data
+from app.services.review import scoring
 from app.services.backup.service import ensure_daily_backup
 from app.services.osm.pbf.files import cleanup_partials
 
@@ -40,6 +41,8 @@ async def lifespan(_app: FastAPI):
     upgrade_to_head()
     with SessionLocal() as db:
         sync_seed_data(db)
+        if n := scoring.recompute_stale(db):  # new reviews or a changed formula
+            log.info("Recomputed suitability score for %d reviews", n)
     for name in cleanup_partials(get_settings().osm_dir):  # interrupted downloads from a previous run
         log.info("Removed incomplete OSM file %s", name)
     task = asyncio.create_task(_daily_backup_loop())

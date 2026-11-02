@@ -1,8 +1,11 @@
+from typing import Literal
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import LeadRecord
+from app.models.enums import OutreachApproach
 from app.schemas.crm import LeadDetail, LeadOut, LeadUpdate, OutreachEventIn, StageChangeIn
 from app.services.crm import service as crm
 
@@ -17,8 +20,17 @@ def _get(db: Session, lead_id: int) -> LeadRecord:
 
 
 @router.get("", response_model=list[LeadOut])
-def get_leads(stage: str | None = None, sector_id: int | None = None, q: str | None = None, db: Session = Depends(get_db)):
-    return [LeadOut.from_lead(lead) for lead in crm.list_leads(db, stage=stage, sector_id=sector_id, q=q)]
+def get_leads(
+    stage: str | None = None,
+    sector_id: int | None = None,
+    q: str | None = None,
+    band: Literal["A", "B", "C", "D", "E", "NOT_ELIGIBLE", "NONE"] | None = None,
+    recommendation: OutreachApproach | None = None,
+    sort: Literal["follow_up", "score"] | None = None,
+    db: Session = Depends(get_db),
+):
+    leads = crm.list_leads(db, stage=stage, sector_id=sector_id, q=q, band=band, recommendation=recommendation, sort=sort)
+    return [LeadOut.from_lead(lead) for lead in leads]
 
 
 @router.get("/{lead_id}", response_model=LeadDetail)

@@ -4,7 +4,7 @@ from pydantic import BaseModel, Field
 
 from app.models import LeadRecord
 from app.models.enums import ContactChannel, CrmStage, OutreachEventType
-from app.schemas.business import BusinessOut
+from app.schemas.business import BusinessOut, SuitabilityOut, SuitabilitySummary
 from app.schemas.common import ORMModel
 
 
@@ -69,6 +69,7 @@ class LeadOut(BaseModel):
     contact_email: str | None
     display_name: str | None
     latest_note: str | None  # most recent message/reply/note text, for list views
+    suitability: SuitabilitySummary | None
 
     @classmethod
     def from_lead(cls, lead: LeadRecord) -> "LeadOut":
@@ -98,13 +99,19 @@ class LeadOut(BaseModel):
             contact_email=(r and r.manual_email) or b.email,
             display_name=(r and r.current_brand_name) or b.name,
             latest_note=next((e.message_or_note for e in lead.events if e.message_or_note), None),
+            suitability=SuitabilitySummary.from_review(r),
         )
 
 
 class LeadDetail(LeadOut):
     events: list[OutreachEventOut]
+    suitability: SuitabilityOut | None  # full breakdown + reasons
 
     @classmethod
     def from_lead(cls, lead: LeadRecord) -> "LeadDetail":
-        base = LeadOut.from_lead(lead).model_dump()
-        return cls(**base, events=[OutreachEventOut.model_validate(e) for e in lead.events])
+        base = LeadOut.from_lead(lead).model_dump(exclude={"suitability"})
+        return cls(
+            **base,
+            events=[OutreachEventOut.model_validate(e) for e in lead.events],
+            suitability=SuitabilityOut.compute(lead.business.review),
+        )

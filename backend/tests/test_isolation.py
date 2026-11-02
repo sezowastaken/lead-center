@@ -95,7 +95,7 @@ def test_devtools_status_is_read_only(db, tmp_path):
     db.get_bind().dispose()
     before = hashlib.sha256(path.read_bytes()).hexdigest()
     out = read_status(path)
-    assert "schema: 0004" in out and "businesses: 0" in out
+    assert "schema: 0005" in out and "businesses: 0" in out
     assert hashlib.sha256(path.read_bytes()).hexdigest() == before
 
 

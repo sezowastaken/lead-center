@@ -7,8 +7,9 @@ import { fmtDateTime, fmtMoney } from "../api/format";
 import { labelOf, useLabels } from "../api/labels";
 import { externalUrl } from "../api/links";
 import type { LeadDetail, LeadFields } from "../api/types";
-import { useI18n, useSectorName } from "../i18n";
+import { useI18n, usePlaceName, useSectorName } from "../i18n";
 import QuickLinks from "../components/QuickLinks";
+import { ScoreBadge, ScoreDetails } from "../components/Suitability";
 import { Badge, Button, ButtonLink, Card, CardHeader, ErrorNote, Field, OsmValue, Segmented, SelectInput, StageBadge } from "../components/ui";
 import { suggestStage } from "../lib/logic";
 
@@ -43,6 +44,7 @@ function LeadView({ lead }: { lead: LeadDetail }) {
   const { t } = useI18n();
   const L = useLabels();
   const sectorName = useSectorName();
+  const placeName = usePlaceName();
   const settle = useLeadSettle();
   const stage = useMutation({ mutationFn: (s: string) => api.changeStage(lead.id, s), onSuccess: settle });
   const b = lead.business;
@@ -54,11 +56,12 @@ function LeadView({ lead }: { lead: LeadDetail }) {
           <div className="min-w-0">
             <h1 className="text-[26px] leading-tight font-semibold tracking-tight">{lead.display_name ?? t("common.unnamed")}</h1>
             <p className="mt-1 text-[15px] text-muted">
-              {sectorName(b.sector?.name)} · {b.location?.name} · {t("lead.approvedOn", { date: fmtDateTime(lead.created_at) })}
+              {sectorName(b.sector?.name)} · {placeName(b.location?.name)} · {t("lead.approvedOn", { date: fmtDateTime(lead.created_at) })}
               {lead.display_name !== b.name && b.name ? ` · ${t("lead.osmName", { name: b.name })}` : ""}
             </p>
           </div>
           <div className="flex items-center gap-2">
+            {lead.suitability && <ScoreBadge s={lead.suitability} />}
             <StageBadge stage={lead.stage} label={labelOf(L.CRM_STAGES, lead.stage)} />
             <ButtonLink to={`/business/${b.id}`} variant="secondary" size="sm">
               {t("lead.reviewNotes")}
@@ -98,6 +101,7 @@ function LeadView({ lead }: { lead: LeadDetail }) {
           <Timeline lead={lead} />
         </div>
         <div className="flex min-w-0 flex-col gap-6">
+          {lead.suitability && <ScoreDetails s={lead.suitability} />}
           <ContactCard lead={lead} />
           <LeadFieldsForm lead={lead} />
         </div>

@@ -9,27 +9,56 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.database import utcnow
-from app.models import LeadRecord, OSMBusiness
+from app.models import LeadRecord, ManualReview, OSMBusiness
 from app.models.enums import CrmStage, OutreachEventType, RecordState
 from app.models.crm import OutreachEvent
 from app.schemas.crm import LeadUpdate, OutreachEventIn
 from app.timeutil import to_utc_naive
 
 
-def list_leads(db: Session, *, stage: str | None = None, sector_id: int | None = None, q: str | None = None) -> list[LeadRecord]:
-    """Leads whose business is currently APPROVED (an undone approval hides the lead but keeps its history)."""
+# band filter values besides A–E
+NOT_ELIGIBLE, UNSCORED = "NOT_ELIGIBLE", "NONE"
+
+
+def list_leads(
+    db: Session,
+    *,
+    stage: str | None = None,
+    sector_id: int | None = None,
+    q: str | None = None,
+    band: str | None = None,
+    recommendation: str | None = None,
+    sort: str | None = None,
+) -> list[LeadRecord]:
+    """Leads whose business is currently APPROVED (an undone approval hides the lead but keeps its history).
+
+    Default order: next follow-up, then most recently updated. sort="score": stored suitability score,
+    highest first; not-eligible and unscored leads last.
+    """
     stmt = (
         select(LeadRecord)
         .join(OSMBusiness, LeadRecord.business_id == OSMBusiness.id)
+        .outerjoin(ManualReview, ManualReview.business_id == OSMBusiness.id)
         .where(OSMBusiness.record_state == RecordState.APPROVED)
     )
+    if band == NOT_ELIGIBLE:
+        stmt = stmt.where(ManualReview.suitability_status == NOT_ELIGIBLE)
+    elif band == UNSCORED:
+        stmt = stmt.where(ManualReview.suitability_status.is_(None))
+    elif band:
+        stmt = stmt.where(ManualReview.suitability_band == band)
+    if recommendation:
+        stmt = stmt.where(ManualReview.suitability_recommendation == recommendation)
     if stage:
         stmt = stmt.where(LeadRecord.stage == stage)
     if sector_id is not None:
         stmt = stmt.where(OSMBusiness.sector_id == sector_id)
     if q:
         stmt = stmt.where(OSMBusiness.name.ilike(f"%{q.strip()}%"))
-    stmt = stmt.order_by(LeadRecord.next_follow_up_at.is_(None), LeadRecord.next_follow_up_at, LeadRecord.updated_at.desc())
+    if sort == "score":
+        stmt = stmt.order_by(ManualReview.suitability_score.is_(None), ManualReview.suitability_score.desc(), LeadRecord.updated_at.desc())
+    else:
+        stmt = stmt.order_by(LeadRecord.next_follow_up_at.is_(None), LeadRecord.next_follow_up_at, LeadRecord.updated_at.desc())
     return list(db.scalars(stmt).unique())
 
 
